@@ -10,6 +10,7 @@ const HERO_TICKS_FALLBACK=[
 
 function Hero() {
   const ticks=useLiveTicks(HERO_TICKS_FALLBACK);
+  const memberCount=useLiveMemberCount();
   return (
     <section id="top" style={{position:'relative',overflow:'hidden',padding:'calc(var(--space-9) + 20px) var(--gutter) var(--space-10)'}}>
       <div style={{position:'absolute',inset:0,background:'var(--hero-glow)',pointerEvents:'none'}}/>
@@ -29,7 +30,7 @@ function Hero() {
           </div>
           <div style={{display:'flex',gap:'var(--space-7)',marginTop:'var(--space-4)',flexWrap:'wrap'}}>
             <KitStat value="78.4%" label="Avg win rate" />
-            <KitStat value="15+" label="Active members" />
+            <KitStat value={`${memberCount}+`} label="Active members" />
             <KitStat value="+612" label="Pips · 30 days" direction="up" />
           </div>
         </div>

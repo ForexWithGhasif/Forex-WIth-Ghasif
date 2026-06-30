@@ -138,7 +138,26 @@ function useLiveTicks(fallback) {
   return ticks;
 }
 
-Object.assign(window,{KitButton,KitBadge,KitCard,KitStat,KitKicker,Icon,SocialGlyph,LazyImg,useLiveTicks});
+/* Live "active members" count: a shared value between 5 and 20, re-rolled
+   every 5 minutes, broadcast to every instance on the page so the figure
+   is always identical wherever it's shown (hero, trust bar, CTA copy...). */
+function fwgRandomMemberCount(){ return Math.floor(Math.random()*(20-5+1))+5; }
+var FWG_MEMBER_STORE={ value: fwgRandomMemberCount(), listeners: [] };
+setInterval(function(){
+  FWG_MEMBER_STORE.value=fwgRandomMemberCount();
+  FWG_MEMBER_STORE.listeners.forEach(function(fn){ fn(FWG_MEMBER_STORE.value); });
+},5*60*1000);
+
+function useLiveMemberCount(){
+  const [count,setCount]=React.useState(FWG_MEMBER_STORE.value);
+  React.useEffect(()=>{
+    FWG_MEMBER_STORE.listeners.push(setCount);
+    return ()=>{ FWG_MEMBER_STORE.listeners=FWG_MEMBER_STORE.listeners.filter(function(fn){ return fn!==setCount; }); };
+  },[]);
+  return count;
+}
+
+Object.assign(window,{KitButton,KitBadge,KitCard,KitStat,KitKicker,Icon,SocialGlyph,LazyImg,useLiveTicks,useLiveMemberCount});
 
 /* Official social/contact destinations (single source of truth). */
 window.FWG_SOCIAL = {

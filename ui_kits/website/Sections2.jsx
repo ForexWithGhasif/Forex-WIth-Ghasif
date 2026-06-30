@@ -178,6 +178,7 @@ function Blog() {
 }
 
 function CTASection() {
+  const memberCount=useLiveMemberCount();
   return <Section id="join"><Container>
     <div style={{position:'relative',overflow:'hidden',borderRadius:'var(--radius-2xl)',padding:'var(--space-10) var(--gutter)',
       background:'linear-gradient(135deg, var(--ink-850), var(--ink-900))',border:'1px solid var(--border-gold)',textAlign:'center',boxShadow:'var(--glow-gold-md), var(--shadow-xl)'}}>
@@ -188,7 +189,7 @@ function CTASection() {
           Stop gambling. Start <span className="fwg-gold-text">trading with a system.</span>
         </h2>
         <p style={{fontSize:'var(--text-md)',lineHeight:1.65,color:'var(--text-secondary)',margin:0,maxWidth:'48ch'}}>
-          Join 15+ traders building real, repeatable consistency with Forex With Ghasif. Start free, upgrade when you’re ready.
+          Join {memberCount}+ traders building real, repeatable consistency with Forex With Ghasif. Start free, upgrade when you’re ready.
         </p>
         <div style={{display:'flex',gap:'12px',flexWrap:'wrap',justifyContent:'center',marginTop:'4px'}}>
           <KitButton as="a" href="/pricing" variant="primary" size="lg" iconRight={<Icon name="arrow-up-right" size={18}/>}>Join VIP Signals</KitButton>
