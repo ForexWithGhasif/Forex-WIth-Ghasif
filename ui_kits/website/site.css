@@ -3,11 +3,45 @@
 
 html { scroll-behavior: smooth; background: var(--bg-base); }
 body { background: transparent; overflow-x: hidden; }
-#fwg-dot-bg { transition: opacity var(--dur-theme) var(--ease-smooth); }
 
 @keyframes fwgmarquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
-@keyframes fwgrise { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
-.fwg-reveal { animation: fwgrise var(--dur-slow) var(--ease-out) both; }
+
+/* Scroll-reveal: 4 directional variants, all on the same calm timing as
+   the rest of the design system (--dur-slow / --ease-out), so a single
+   element fades AND eases in from the direction it's coming from.
+   `prefers-reduced-motion` collapses --dur-slow to 0ms globally (see
+   tokens/motion.css), which fully disables these without any extra rule. */
+@keyframes fwgRiseUp    { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes fwgRiseDown  { from { opacity: 0; transform: translateY(-18px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes fwgRiseLeft  { from { opacity: 0; transform: translateX(-26px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes fwgRiseRight { from { opacity: 0; transform: translateX(26px); } to { opacity: 1; transform: translateX(0); } }
+.fwg-reveal-up    { animation: fwgRiseUp    var(--dur-slow) var(--ease-out) both; }
+.fwg-reveal-down  { animation: fwgRiseDown  var(--dur-slow) var(--ease-out) both; }
+.fwg-reveal-left  { animation: fwgRiseLeft  var(--dur-slow) var(--ease-out) both; }
+.fwg-reveal-right { animation: fwgRiseRight var(--dur-slow) var(--ease-out) both; }
+
+/* ==========================================================================
+   Full-screen ambient background: 3 large, very soft, heavily-blurred
+   brand-color blobs drifting slowly behind all content. Pure CSS (no
+   canvas, no JS animation loop) — the browser compositor handles it, so
+   it's effectively free at runtime. Colors are existing design tokens
+   only (gold/emerald/obsidian), no new colors. The DOM container + blob
+   elements are created once by bgfx.js; all the visuals/motion live here.
+   ========================================================================== */
+#fwg-bg-gradient { position: fixed; inset: 0; z-index: -2; overflow: hidden; pointer-events: none; background: var(--bg-base); transition: background-color var(--dur-theme) var(--ease-smooth); }
+#fwg-bg-gradient .fwg-blob { position: absolute; border-radius: 50%; filter: blur(70px); opacity: 0.5; will-change: transform; }
+#fwg-bg-gradient .fwg-blob--gold     { width: 56vw; height: 56vw; left: -10vw; top: -14vw; background: radial-gradient(circle, var(--gold-500) 0%, transparent 70%); animation: fwgDrift1 38s var(--ease-in-out) infinite alternate; }
+#fwg-bg-gradient .fwg-blob--emerald  { width: 48vw; height: 48vw; right: -12vw; top: 18vw; background: radial-gradient(circle, var(--emerald-500) 0%, transparent 70%); animation: fwgDrift2 46s var(--ease-in-out) infinite alternate; }
+#fwg-bg-gradient .fwg-blob--gold-soft{ width: 44vw; height: 44vw; left: 18vw; bottom: -16vw; background: radial-gradient(circle, var(--gold-400) 0%, transparent 70%); opacity: 0.32; animation: fwgDrift3 52s var(--ease-in-out) infinite alternate; }
+[data-theme="light"] #fwg-bg-gradient .fwg-blob { opacity: 0.22; }
+[data-theme="light"] #fwg-bg-gradient .fwg-blob--gold-soft { opacity: 0.14; }
+@keyframes fwgDrift1 { from { transform: translate(0, 0) scale(1); } to { transform: translate(6vw, 5vw) scale(1.08); } }
+@keyframes fwgDrift2 { from { transform: translate(0, 0) scale(1); } to { transform: translate(-5vw, -6vw) scale(1.06); } }
+@keyframes fwgDrift3 { from { transform: translate(0, 0) scale(1); } to { transform: translate(4vw, -4vw) scale(1.1); } }
+
+/* Cursor-follow glow: a soft blurred light that gently lags behind the
+   pointer, desktop only (created/positioned by bgfx.js). */
+#fwg-cursor-glow { position: fixed; top: 0; left: 0; width: 420px; height: 420px; margin-left: -210px; margin-top: -210px; border-radius: 50%; z-index: -1; pointer-events: none; mix-blend-mode: screen; opacity: 0; background: radial-gradient(circle, rgba(214,175,67,0.14) 0%, rgba(214,175,67,0.05) 32%, rgba(214,175,67,0) 68%); transition: opacity 500ms ease; will-change: transform, opacity; }
 
 /* Article modal */
 @keyframes fwgOverlayIn { from { opacity: 0; } to { opacity: 1; } }
@@ -68,6 +102,13 @@ body { background: transparent; overflow-x: hidden; }
 
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
-  .fwg-reveal, .fwg-modal-overlay, .fwg-modal-card, .fwg-dropdown-menu { animation: none; }
+  .fwg-reveal-up, .fwg-reveal-down, .fwg-reveal-left, .fwg-reveal-right,
+  .fwg-modal-overlay, .fwg-modal-card, .fwg-dropdown-menu { animation: none; }
   [style*="fwgmarquee"] { animation: none !important; }
+  /* Background blobs and the cursor glow are real, continuous motion —
+     stop the drift outright and never show the glow for reduced-motion
+     users, rather than just speeding it up like the token-driven UI
+     animations above. */
+  #fwg-bg-gradient .fwg-blob { animation: none; }
+  #fwg-cursor-glow { display: none; }
 }

@@ -4,8 +4,8 @@
 function Container({children,style}) {
   return <div style={{maxWidth:'var(--container-xl)',margin:'0 auto',padding:'0 var(--gutter)',...style}}>{children}</div>;
 }
-function Section({id,children,style}) {
-  return <section id={id} style={{padding:'var(--section-y) 0',position:'relative',...style}}>{children}</section>;
+function Section({id,children,style,...rest}) {
+  return <section id={id} style={{padding:'var(--section-y) 0',position:'relative',...style}} {...rest}>{children}</section>;
 }
 function Head({kicker,title,lead,align='left',as='h2'}) {
   const c=align==='center'; const Tag=as;
@@ -105,11 +105,24 @@ function useTheme() {
 }
 
 /* Scroll-reveal wrapper */
+/* Scroll-reveal wrapper. Each direct child fades/eases in once it scrolls
+   into view. Direction defaults to "up"; set a child's `data-reveal`
+   attribute to "down" | "left" | "right" for variety (e.g. <Section
+   data-reveal="left">). A small index-based stagger (capped) gives
+   successive children a slight, premium-feeling delay rather than
+   popping in simultaneously. */
 function Reveal({children}) {
   const ref=React.useRef(null);
   React.useEffect(()=>{
     const el=ref.current; if(!el) return;
-    const io=new IntersectionObserver((es)=>{es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('fwg-reveal');io.unobserve(e.target);}});},{threshold:0.06,rootMargin:'0px 0px -6% 0px'});
+    const io=new IntersectionObserver((es)=>{es.forEach((e,i)=>{
+      if(e.isIntersecting){
+        const dir=e.target.getAttribute('data-reveal')||'up';
+        e.target.style.animationDelay=Math.min(i*70,280)+'ms';
+        e.target.classList.add('fwg-reveal-'+dir);
+        io.unobserve(e.target);
+      }
+    });},{threshold:0.06,rootMargin:'0px 0px -6% 0px'});
     Array.from(el.children).forEach(c=>io.observe(c));
     return ()=>io.disconnect();
   },[]);

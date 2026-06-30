@@ -39,7 +39,7 @@ function ServicesPreview() {
 
 function IntroBand() {
   const memberCount=useLiveMemberCount();
-  return <Section style={{background:'var(--bg-elevated)'}}><Container>
+  return <Section style={{background:'var(--bg-elevated)'}} data-reveal="left"><Container>
     <div style={{display:'grid',gridTemplateColumns:'1.1fr 0.9fr',gap:'var(--space-8)',alignItems:'center'}} className="fwg-hero-grid">
       <div>
         <KitKicker>Who we are</KitKicker>
@@ -96,7 +96,7 @@ function AboutPage() {
     <PageHero kicker="About us" title="The story behind Forex With Ghasif"
       lead="A premium forex education brand built to bring institutional discipline and radical transparency to everyday traders." />
     <Reveal>
-      <Section><Container>
+      <Section data-reveal="left"><Container>
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'var(--space-8)',alignItems:'stretch'}} className="fwg-hero-grid">
           <FounderPhoto ratio="1/1" />
           <div style={{display:'flex',flexDirection:'column',justifyContent:'center'}}>
@@ -133,7 +133,7 @@ function AboutPage() {
       </Container></Section>
 
       {/* Founder */}
-      <Section><Container>
+      <Section data-reveal="right"><Container>
         <div style={{display:'grid',gridTemplateColumns:'0.8fr 1.2fr',gap:'var(--space-8)',alignItems:'center'}} className="fwg-hero-grid">
           <div style={{position:'relative'}}>
             <FounderPhoto />
@@ -208,9 +208,13 @@ function ServicesPage() {
       lead="Signals, mentorship, analysis, and the risk discipline that ties them together, choose the depth of support that fits where you are." />
     <Reveal>
       <Section><Container>
-        <div style={{display:'flex',flexDirection:'column',gap:'18px'}}>
-          {services.map((s,i)=><ServiceRow key={s.name} {...s} reverse={i%2===1} />)}
-        </div>
+        <Reveal>
+          <div style={{display:'flex',flexDirection:'column',gap:'18px'}}>
+            {services.map((s,i)=>(
+              <div key={s.name} data-reveal={i%2===1?'right':'left'}><ServiceRow {...s} reverse={i%2===1} /></div>
+            ))}
+          </div>
+        </Reveal>
       </Container></Section>
       <CTASection />
     </Reveal>

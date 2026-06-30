@@ -2,7 +2,7 @@
 
 function Performance() {
   const stats=[['78.4%','Avg win rate','+2.1% MoM','up'],['+612','Pips · last 30 days','best month yet','up'],['1 : 3.2','Avg reward-to-risk','disciplined sizing','up'],['4.1%','Max drawdown','risk controlled','down']];
-  return <Section id="results"><Container>
+  return <Section id="results" data-reveal="left"><Container>
     <Head kicker="Performance & results" title="Numbers we publish, not promise"
       lead="A track record only matters if it’s honest. We log every trade, the losers included, and report the figures that actually reflect risk-adjusted consistency." />
     <div style={{display:'grid',gridTemplateColumns:'1.2fr 0.8fr',gap:'18px',alignItems:'stretch'}} className="fwg-hero-grid">
@@ -38,7 +38,7 @@ function Testimonials() {
     ['The transparency sold me. They post the losses too. That honesty is rare in this space and it’s why I trust the calls.','Marcus L.','VIP member · 5 months'],
     ['Went from random entries to a repeatable plan. My drawdowns are smaller and my confidence is higher. Worth every penny.','Priya S.','Mentorship · 6 months'],
   ];
-  return <Section id="testimonials" style={{background:'var(--bg-elevated)'}}><Container>
+  return <Section id="testimonials" style={{background:'var(--bg-elevated)'}} data-reveal="right"><Container>
     <Head align="center" kicker="Student results" title="Traders who found consistency"
       lead="Real members, real progress, built on discipline and education, not overnight miracles." />
     <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'18px'}} className="fwg-grid-2">

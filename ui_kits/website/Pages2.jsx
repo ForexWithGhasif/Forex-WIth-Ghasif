@@ -575,7 +575,7 @@ function ContactPage() {
     <PageHero kicker="Contact" title="Let’s talk trading"
       lead="Questions about VIP Signals or mentorship? Reach out, we usually reply within one business day." />
     <Reveal>
-      <Section><Container>
+      <Section data-reveal="left"><Container>
         <div style={{display:'grid',gridTemplateColumns:'1.1fr 0.9fr',gap:'var(--space-8)',alignItems:'start'}} className="fwg-hero-grid">
           <ContactForm />
           <div style={{display:'flex',flexDirection:'column',gap:'14px'}}>

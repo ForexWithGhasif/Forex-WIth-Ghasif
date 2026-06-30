@@ -46,7 +46,7 @@ function About() {
     ['Process over prediction','We don’t predict the market, we react to confirmed structure with a repeatable, rules-based plan.'],
     ['Patience is a position','The best trade is often no trade. We wait for A-grade setups instead of forcing the market.'],
   ];
-  return <Section id="about"><Container>
+  return <Section id="about" data-reveal="left"><Container>
     <div style={{display:'grid',gridTemplateColumns:'0.9fr 1.1fr',gap:'var(--space-8)',alignItems:'center'}} className="fwg-hero-grid">
       <div>
         <KitKicker>About Forex With Ghasif</KitKicker>
