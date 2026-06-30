@@ -1,0 +1,39 @@
+<!-- @dsCard group="Colors" viewport="700x180" name="Bull & Bear Semantics" subtitle="Emerald = up/success · Crimson = down/danger — data only" -->
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="../styles.css" />
+<style>
+  body { margin:0; background:var(--bg-elevated); padding:22px; font-family:var(--font-body); }
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .col { display:flex; gap:8px; }
+  .sw { flex:1; height:64px; border-radius:var(--radius-sm); display:flex; align-items:flex-end; padding:7px; }
+  .lab { font-family:var(--font-mono); font-size:10px; }
+  .tag { display:inline-flex; align-items:center; gap:6px; margin-top:12px; padding:5px 12px; border-radius:var(--radius-pill); font-family:var(--font-mono); font-size:12px; font-weight:600; }
+  .up { background:var(--bullish-bg); color:var(--bullish); }
+  .down { background:var(--bearish-bg); color:var(--bearish); }
+  .heads { display:flex; justify-content:space-between; margin-top:4px; }
+</style>
+</head>
+<body>
+  <div class="grid">
+    <div>
+      <div class="col">
+        <div class="sw" style="background:var(--emerald-300)"><span class="lab" style="color:#06372a">300</span></div>
+        <div class="sw" style="background:var(--emerald-500)"><span class="lab" style="color:#fff">500</span></div>
+        <div class="sw" style="background:var(--emerald-700)"><span class="lab" style="color:#fff">700</span></div>
+      </div>
+      <span class="tag up">↗ +612 pips</span>
+    </div>
+    <div>
+      <div class="col">
+        <div class="sw" style="background:var(--crimson-300)"><span class="lab" style="color:#4a1014">300</span></div>
+        <div class="sw" style="background:var(--crimson-500)"><span class="lab" style="color:#fff">500</span></div>
+        <div class="sw" style="background:var(--crimson-700)"><span class="lab" style="color:#fff">700</span></div>
+      </div>
+      <span class="tag down">↘ −1.4%</span>
+    </div>
+  </div>
+</body>
+</html>

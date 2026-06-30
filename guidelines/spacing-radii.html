@@ -1,0 +1,30 @@
+<!-- @dsCard group="Spacing" viewport="700x180" name="Radii & Elevation" subtitle="Corner radii and the dark shadow ramp" -->
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="../styles.css" />
+<style>
+  body { margin:0; background:var(--bg-base); padding:24px 28px; font-family:var(--font-body); display:flex; gap:30px; }
+  .grp { display:flex; gap:14px; align-items:center; }
+  .box { width:62px; height:62px; background:var(--surface-card-solid); border:1px solid var(--border-default); display:flex; align-items:flex-end; justify-content:center; padding-bottom:6px; }
+  .e { background:var(--ink-800); border:1px solid var(--border-subtle); border-radius:var(--radius-md); }
+  .t { font-family:var(--font-mono); font-size:9px; color:var(--text-tertiary); }
+</style>
+</head>
+<body>
+  <div class="grp">
+    <div class="box" style="border-radius:var(--radius-sm)"><span class="t">sm</span></div>
+    <div class="box" style="border-radius:var(--radius-md)"><span class="t">md</span></div>
+    <div class="box" style="border-radius:var(--radius-lg)"><span class="t">lg</span></div>
+    <div class="box" style="border-radius:var(--radius-xl)"><span class="t">xl</span></div>
+    <div class="box" style="border-radius:var(--radius-pill)"><span class="t">pill</span></div>
+  </div>
+  <div class="grp">
+    <div class="box e" style="box-shadow:var(--shadow-sm)"><span class="t">sm</span></div>
+    <div class="box e" style="box-shadow:var(--shadow-md)"><span class="t">md</span></div>
+    <div class="box e" style="box-shadow:var(--shadow-lg)"><span class="t">lg</span></div>
+    <div class="box e" style="box-shadow:var(--glow-gold-md)"><span class="t">glow</span></div>
+  </div>
+</body>
+</html>

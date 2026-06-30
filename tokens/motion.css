@@ -1,0 +1,33 @@
+/* ============================================================
+   Forex With Ghasif — MOTION
+   Calm, expensive easing. Quick, confident, never bouncy.
+   ============================================================ */
+
+:root {
+  --ease-out:    cubic-bezier(0.22, 1, 0.36, 1); /* @kind other */
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1); /* @kind other */
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1); /* @kind other */
+
+  --dur-fast:   140ms; /* @kind other */
+  --dur-base:   240ms; /* @kind other */
+  --dur-slow:   420ms; /* @kind other */
+  --dur-slower: 720ms; /* @kind other */
+
+  /* theme cross-fade */
+  --dur-theme:  500ms; /* @kind other */
+
+  --transition-base:  all var(--dur-base) var(--ease-out); /* @kind other */
+  --transition-color: color var(--dur-fast) var(--ease-smooth),
+                      background-color var(--dur-fast) var(--ease-smooth),
+                      border-color var(--dur-fast) var(--ease-smooth); /* @kind other */
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-fast: 0ms; /* @kind other */
+    --dur-base: 0ms; /* @kind other */
+    --dur-slow: 0ms; /* @kind other */
+    --dur-slower: 0ms; /* @kind other */
+    --dur-theme: 0ms; /* @kind other */
+  }
+}

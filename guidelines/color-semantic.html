@@ -1,0 +1,42 @@
+<!-- @dsCard group="Colors" viewport="700x196" name="Semantic Surfaces & Text" subtitle="Themed aliases — flip with [data-theme]" -->
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="../styles.css" />
+<style>
+  body { margin:0; background:var(--bg-base); padding:22px; font-family:var(--font-body); }
+  .wrap { display:flex; gap:14px; }
+  .panel { flex:1; background:var(--surface-card); border:1px solid var(--border-default); border-radius:var(--radius-lg); padding:16px; box-shadow:var(--shadow-card); }
+  .l { font-size:10px; font-family:var(--font-mono); color:var(--text-muted); text-transform:uppercase; letter-spacing:.1em; margin-bottom:10px; }
+  .t1 { color:var(--text-primary); font-weight:700; font-size:16px; }
+  .t2 { color:var(--text-secondary); font-size:13px; margin-top:4px; }
+  .t3 { color:var(--text-tertiary); font-size:12px; margin-top:4px; }
+  .chip { display:inline-block; margin-top:10px; padding:4px 10px; border-radius:var(--radius-pill); background:var(--accent-soft-bg); color:var(--text-gold); font-size:11px; font-weight:600; }
+  .dot { display:flex; gap:8px; margin-top:8px; }
+  .dot span { width:22px; height:22px; border-radius:6px; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="panel">
+      <div class="l">Surface</div>
+      <div class="t1">Card surface</div>
+      <div class="t2">Translucent glass over base</div>
+      <div class="dot">
+        <span style="background:var(--bg-base);border:1px solid var(--border-subtle)"></span>
+        <span style="background:var(--surface-card-solid)"></span>
+        <span style="background:var(--surface-hover)"></span>
+        <span style="background:var(--accent-soft-bg)"></span>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="l">Text</div>
+      <div class="t1">Primary heading</div>
+      <div class="t2">Secondary supporting copy</div>
+      <div class="t3">Tertiary / meta detail</div>
+      <span class="chip">--text-gold accent</span>
+    </div>
+  </div>
+</body>
+</html>

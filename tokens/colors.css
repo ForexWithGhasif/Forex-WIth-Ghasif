@@ -1,0 +1,151 @@
+/* ============================================================
+   Forex With Ghasif — COLOR SYSTEM
+   Luxury fintech: champagne gold on warm obsidian.
+   Base palettes (raw) + semantic aliases (themed).
+   Default :root = DARK (the hero theme). [data-theme="light"]
+   overrides the semantic layer only.
+   ============================================================ */
+
+:root {
+  /* ---------- Champagne / metallic gold ---------- */
+  --gold-50:  #FBF6E6;
+  --gold-100: #F6EAC4;
+  --gold-200: #EEDA98;
+  --gold-300: #E4C76A;
+  --gold-400: #D6AF43;
+  --gold-500: #C69A2C;   /* core gold */
+  --gold-600: #A87E20;
+  --gold-700: #82611A;
+  --gold-800: #594314;
+  --gold-900: #34280D;
+  --gold-highlight: #F8E9B4;  /* specular champagne */
+  --gold-deep:      #8A6A1F;  /* shadow tone of metal */
+
+  /* ---------- Obsidian / ink (warm-cool near-black) ---------- */
+  --ink-950: #06070A;
+  --ink-900: #0A0C11;
+  --ink-850: #0E1118;
+  --ink-800: #131722;
+  --ink-750: #191E2B;
+  --ink-700: #222839;
+  --ink-650: #2C3346;
+  --ink-600: #3A4257;
+  --ink-500: #4E5870;
+  --ink-400: #6B748D;
+  --ink-300: #97A0B5;
+  --ink-200: #C3CAD8;
+  --ink-100: #E3E7EE;
+
+  /* ---------- Emerald — bullish / success / primary action ---------- */
+  --emerald-200: #9DEFC9;
+  --emerald-300: #62E2A8;
+  --emerald-400: #2FD08A;
+  --emerald-500: #13B978;   /* core */
+  --emerald-600: #069563;
+  --emerald-700: #06754F;
+
+  /* ---------- Crimson — bearish / danger ---------- */
+  --crimson-300: #F8A5A5;
+  --crimson-400: #F2706F;
+  --crimson-500: #E4474A;   /* core */
+  --crimson-600: #C42E33;
+  --crimson-700: #971F25;
+
+  /* ---------- Ivory — light-mode surfaces ---------- */
+  --ivory-0:   #FFFFFF;
+  --ivory-50:  #FCFAF4;
+  --ivory-100: #F7F2E7;
+  --ivory-200: #EFE7D4;
+  --ivory-300: #E2D6BC;
+
+  /* ---------- Metallic gradients ---------- */
+  --grad-gold:        linear-gradient(135deg, var(--gold-deep) 0%, var(--gold-400) 28%, var(--gold-highlight) 50%, var(--gold-500) 72%, var(--gold-deep) 100%);
+  --grad-gold-soft:   linear-gradient(135deg, var(--gold-600) 0%, var(--gold-300) 55%, var(--gold-highlight) 100%);
+  --grad-emerald:     linear-gradient(135deg, var(--emerald-600) 0%, var(--emerald-400) 100%);
+  --grad-bull-bear:   linear-gradient(90deg, var(--crimson-500) 0%, var(--gold-400) 50%, var(--emerald-500) 100%);
+
+  /* radial glows for hero backdrops */
+  --glow-gold:    radial-gradient(60% 60% at 50% 0%, rgba(214,175,67,0.16) 0%, rgba(214,175,67,0) 70%); /* @kind color */
+  --glow-emerald: radial-gradient(50% 50% at 80% 20%, rgba(19,185,120,0.12) 0%, rgba(19,185,120,0) 70%); /* @kind color */
+}
+
+/* ============================================================
+   SEMANTIC — DARK (default)
+   ============================================================ */
+:root,
+[data-theme="dark"] {
+  --bg-base:        var(--ink-950);
+  --bg-deep:        #040508;
+  --bg-elevated:    var(--ink-900);
+  --surface-card:   rgba(255,255,255,0.024);
+  --surface-card-solid: var(--ink-850);
+  --surface-hover:  rgba(255,255,255,0.05);
+  --surface-inset:  rgba(0,0,0,0.35);
+  --surface-glass:  rgba(16,20,30,0.6);
+
+  --border-subtle:  rgba(255,255,255,0.06);
+  --border-default: rgba(255,255,255,0.10);
+  --border-strong:  rgba(255,255,255,0.16);
+  --border-gold:    rgba(214,175,67,0.42);
+
+  --text-primary:   #F4F1E8;
+  --text-secondary: #B7BCCB;
+  --text-tertiary:  #828AA0;
+  --text-muted:     #5C6479;
+  --text-inverse:   #0A0C11;
+  --text-gold:      var(--gold-300);
+
+  --accent:          var(--gold-400);
+  --accent-strong:   var(--gold-500);
+  --accent-contrast: #1A1405;       /* text on gold fills */
+  --accent-soft-bg:  rgba(214,175,67,0.12);
+
+  --bullish:        var(--emerald-400);
+  --bullish-bg:     rgba(19,185,120,0.14);
+  --bearish:        var(--crimson-400);
+  --bearish-bg:     rgba(228,71,74,0.14);
+
+  --focus-ring:     rgba(214,175,67,0.55);
+  --hero-glow:      var(--glow-gold), var(--glow-emerald); /* @kind color */
+  color-scheme: dark;
+}
+
+/* ============================================================
+   SEMANTIC — LIGHT
+   ============================================================ */
+[data-theme="light"] {
+  --bg-base:        var(--ivory-50);
+  --bg-deep:        var(--ivory-100);
+  --bg-elevated:    var(--ivory-0);
+  --surface-card:   var(--ivory-0);
+  --surface-card-solid: var(--ivory-0);
+  --surface-hover:  var(--ivory-100);
+  --surface-inset:  var(--ivory-100);
+  --surface-glass:  rgba(252,250,244,0.7);
+
+  --border-subtle:  rgba(52,40,13,0.08);
+  --border-default: rgba(52,40,13,0.14);
+  --border-strong:  rgba(52,40,13,0.22);
+  --border-gold:    rgba(168,126,32,0.5);
+
+  --text-primary:   #1A1710;
+  --text-secondary: #4D4636;
+  --text-tertiary:  #7A7158;
+  --text-muted:     #A49A7F;
+  --text-inverse:   #FCFAF4;
+  --text-gold:      var(--gold-700);
+
+  --accent:          var(--gold-600);
+  --accent-strong:   var(--gold-700);
+  --accent-contrast: #FCFAF4;
+  --accent-soft-bg:  rgba(168,126,32,0.12);
+
+  --bullish:        var(--emerald-600);
+  --bullish-bg:     rgba(6,149,99,0.12);
+  --bearish:        var(--crimson-600);
+  --bearish-bg:     rgba(196,46,51,0.10);
+
+  --focus-ring:     rgba(168,126,32,0.5);
+  --hero-glow:      radial-gradient(60% 60% at 50% 0%, rgba(198,154,44,0.10) 0%, rgba(198,154,44,0) 70%); /* @kind color */
+  color-scheme: light;
+}

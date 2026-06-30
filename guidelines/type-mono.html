@@ -1,0 +1,27 @@
+<!-- @dsCard group="Type" viewport="700x180" name="JetBrains Mono — Data" subtitle="Tabular figures for every price, pip & percent" -->
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="../styles.css" />
+<style>
+  body { margin:0; background:var(--bg-elevated); padding:22px 28px; font-family:var(--font-mono); }
+  .row { display:flex; gap:26px; align-items:baseline; font-variant-numeric:tabular-nums; }
+  .n { font-size:34px; font-weight:600; color:var(--text-primary); letter-spacing:-.02em; }
+  .u { font-size:12px; color:var(--text-tertiary); margin-left:4px; }
+  .up { color:var(--bullish); } .dn { color:var(--bearish); }
+  .pair { display:flex; flex-direction:column; }
+  .lab { font-size:10px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.12em; margin-bottom:6px; font-family:var(--font-body); }
+  .meta { font-family:var(--font-mono); font-size:11px; color:var(--text-tertiary); margin-top:16px; }
+</style>
+</head>
+<body>
+  <div class="row">
+    <div class="pair"><span class="lab">EUR / USD</span><span class="n">1.0942</span></div>
+    <div class="pair"><span class="lab">Win rate</span><span class="n">78.4<span class="u">%</span></span></div>
+    <div class="pair"><span class="lab">Month</span><span class="n up">+612<span class="u">pips</span></span></div>
+    <div class="pair"><span class="lab">Drawdown</span><span class="n dn">−4.1<span class="u">%</span></span></div>
+  </div>
+  <div class="meta">JetBrains Mono · tabular-nums · --font-mono · [data-numeric]</div>
+</body>
+</html>

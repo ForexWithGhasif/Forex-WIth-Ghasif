@@ -1,0 +1,53 @@
+/* ============================================================
+   Forex With Ghasif — EFFECTS
+   Radii, shadows, glows, blur. Premium = soft depth + a
+   restrained gold glow on interactive/elevated elements.
+   ============================================================ */
+
+:root {
+  /* ---------- Corner radii ---------- */
+  --radius-xs:   6px;
+  --radius-sm:   10px;
+  --radius-md:   14px;
+  --radius-lg:   20px;
+  --radius-xl:   28px;
+  --radius-2xl:  40px;
+  --radius-pill: 999px;
+
+  /* ---------- Elevation shadows (dark-tuned) ---------- */
+  --shadow-xs:  0 1px 2px rgba(0,0,0,0.4);
+  --shadow-sm:  0 2px 8px rgba(0,0,0,0.45);
+  --shadow-md:  0 8px 28px rgba(0,0,0,0.5);
+  --shadow-lg:  0 22px 60px rgba(0,0,0,0.55);
+  --shadow-xl:  0 40px 110px rgba(0,0,0,0.62);
+
+  /* ---------- Gold glows (use sparingly, on CTAs / focus) ---------- */
+  --glow-gold-sm: 0 0 0 1px rgba(214,175,67,0.25), 0 6px 22px rgba(198,154,44,0.22);
+  --glow-gold-md: 0 0 0 1px rgba(214,175,67,0.30), 0 12px 44px rgba(198,154,44,0.30);
+  --glow-emerald-sm: 0 8px 28px rgba(19,185,120,0.28);
+
+  /* ---------- Inner highlights (the "metallic" sheen on cards) ---------- */
+  --inset-top-hi:  inset 0 1px 0 rgba(255,255,255,0.06);
+  --inset-gold-hi: inset 0 1px 0 rgba(248,233,180,0.18);
+
+  /* ---------- Composite card shadow (default elevated card) ---------- */
+  --shadow-card: 0 1px 0 rgba(255,255,255,0.05) inset, 0 18px 50px rgba(0,0,0,0.5);
+
+  /* ---------- Blur ---------- */
+  --blur-sm: 8px; /* @kind other */
+  --blur-md: 18px; /* @kind other */
+  --blur-lg: 36px; /* @kind other */
+
+  /* ---------- Hairline gold divider ---------- */
+  --divider-gold: linear-gradient(90deg, transparent, rgba(214,175,67,0.5), transparent); /* @kind color */
+}
+
+[data-theme="light"] {
+  --shadow-xs:  0 1px 2px rgba(52,40,13,0.08);
+  --shadow-sm:  0 2px 10px rgba(52,40,13,0.10);
+  --shadow-md:  0 10px 30px rgba(52,40,13,0.10);
+  --shadow-lg:  0 24px 60px rgba(52,40,13,0.13);
+  --shadow-xl:  0 40px 100px rgba(52,40,13,0.16);
+  --shadow-card: 0 1px 0 rgba(255,255,255,0.6) inset, 0 16px 44px rgba(52,40,13,0.10);
+  --inset-top-hi: inset 0 1px 0 rgba(255,255,255,0.7);
+}

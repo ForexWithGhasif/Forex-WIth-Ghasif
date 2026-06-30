@@ -1,0 +1,75 @@
+<!-- @dsCard group="Components" viewport="700x440" name="Core Primitives" subtitle="Buttons, badges, inputs, stats & price rows" -->
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="../../styles.css" />
+<style>
+  body { margin:0; background:var(--bg-base); padding:26px; font-family:var(--font-body); }
+  .grid { display:grid; gap:22px; }
+  .label { font-size:10px; font-family:var(--font-mono); color:var(--text-muted); text-transform:uppercase; letter-spacing:.14em; margin-bottom:12px; }
+  .row { display:flex; flex-wrap:wrap; gap:12px; align-items:center; }
+  .cols { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+</style>
+</head>
+<body>
+  <div id="root"></div>
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+  <script src="../../_ds_bundle.js"></script>
+  <script type="text/babel">
+    const { Button, Badge, Card, Stat, Input, PriceTag } = window.ForexWithGhasifDesignSystem_e958d4;
+    function Demo() {
+      return (
+        <div className="grid">
+          <div>
+            <div className="label">Buttons</div>
+            <div className="row">
+              <Button variant="primary" size="lg">Join VIP Signals</Button>
+              <Button variant="emerald">Start free</Button>
+              <Button variant="secondary">Track record</Button>
+              <Button variant="outlineGold">View plans</Button>
+              <Button variant="ghost">Log in</Button>
+            </div>
+          </div>
+          <div>
+            <div className="label">Badges</div>
+            <div className="row">
+              <Badge tone="gold">VIP</Badge>
+              <Badge tone="bull" dot mono>↗ +612 pips</Badge>
+              <Badge tone="bear" mono>−1.4%</Badge>
+              <Badge tone="neutral" dot>Live now</Badge>
+              <Badge tone="solid">Most popular</Badge>
+            </div>
+          </div>
+          <div className="cols">
+            <div>
+              <div className="label">Stats</div>
+              <Card>
+                <div style={{display:'flex',gap:'32px'}}>
+                  <Stat value="78.4%" label="Win rate" />
+                  <Stat value="4,200+" label="Members" delta="+318" />
+                </div>
+              </Card>
+            </div>
+            <div>
+              <div className="label">Watchlist</div>
+              <div style={{display:'flex',flexDirection:'column',gap:'8px'}}>
+                <PriceTag pair="EUR/USD" price="1.0942" change="+0.24%" direction="up" />
+                <PriceTag pair="GBP/JPY" price="188.41" change="-0.18%" direction="down" />
+              </div>
+            </div>
+          </div>
+          <div>
+            <div className="label">Input</div>
+            <Input placeholder="Enter your email"
+              trailing={<Button size="sm" variant="primary">Subscribe</Button>} />
+          </div>
+        </div>
+      );
+    }
+    ReactDOM.createRoot(document.getElementById('root')).render(<Demo />);
+  </script>
+</body>
+</html>

@@ -1,0 +1,53 @@
+/* FWG website — page-level CSS shared by all routed pages.
+   (Design tokens come from ../../styles.css; this is layout/motion glue.) */
+
+html { scroll-behavior: smooth; background: var(--bg-base); }
+body { background: transparent; overflow-x: hidden; }
+#fwg-shader-bg { transition: opacity var(--dur-theme) var(--ease-smooth); }
+
+@keyframes fwgmarquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+@keyframes fwgrise { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
+.fwg-reveal { animation: fwgrise var(--dur-slow) var(--ease-out) both; }
+
+/* Article modal */
+@keyframes fwgOverlayIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fwgModalIn { from { opacity: 0; transform: translateY(24px) scale(0.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
+.fwg-modal-overlay { animation: fwgOverlayIn 220ms var(--ease-out) both; }
+.fwg-modal-card { animation: fwgModalIn 360ms var(--ease-out) both; }
+
+/* Custom dropdown */
+@keyframes fwgPopIn { from { opacity: 0; transform: translateY(-6px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+.fwg-dropdown-menu { animation: fwgPopIn 160ms var(--ease-out) both; }
+
+.fwg-menu-btn { display: none; }
+
+@media (max-width: 1040px) {
+  .fwg-navlinks { display: none !important; }
+  .fwg-menu-btn { display: inline-flex !important; }
+}
+
+@media (max-width: 980px) {
+  .fwg-hero-grid, .fwg-grid-2, .fwg-foot-grid, .fwg-service-grid { grid-template-columns: 1fr !important; }
+  .fwg-grid-3 { grid-template-columns: 1fr 1fr !important; }
+  .fwg-table { font-size: var(--text-xs) !important; }
+  .fwg-feat-fade { display: none !important; }
+}
+
+/* Wide data tables scroll horizontally inside their card on small screens
+   so columns stay readable instead of cramping. */
+.fwg-tablewrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+@media (max-width: 640px) {
+  .fwg-tablewrap > div { min-width: 480px; }
+}
+
+@media (max-width: 620px) {
+  .fwg-grid-3 { grid-template-columns: 1fr !important; }
+  .fwg-hide-sm, .fwg-hide-mobile { display: none !important; }
+  .fwg-foot-grid { gap: var(--space-6) !important; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .fwg-reveal, .fwg-modal-overlay, .fwg-modal-card, .fwg-dropdown-menu { animation: none; }
+  [style*="fwgmarquee"] { animation: none !important; }
+}
