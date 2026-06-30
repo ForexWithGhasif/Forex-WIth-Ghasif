@@ -49,6 +49,16 @@ body { background: transparent; overflow-x: hidden; }
      mismatched alignment looks lopsided — center both instead. */
   .fwg-footer-bottom { justify-content: center !important; text-align: center !important; }
   .fwg-footer-bottom > span { text-align: center !important; }
+  /* Trust bar (icon + label row under the hero): the flex-wrap layout
+     wraps unevenly on narrow phones — force a fixed 2-column grid so the
+     5 items read as a clean 2-up, 3-row block instead. */
+  .fwg-trustbar { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 16px 20px !important; }
+  /* Footer link columns (Trading / Learn / Company): instead of stacking
+     fully to one column, fix them to a 2-column, 2-row grid. The brand
+     block (logo + blurb + socials) stays full-width above, since it's a
+     different kind of content and would look cramped halved. */
+  .fwg-foot-grid { grid-template-columns: 1fr 1fr !important; }
+  .fwg-foot-grid > div:first-child { grid-column: 1 / -1; }
 }
 
 @media (prefers-reduced-motion: reduce) {

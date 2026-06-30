@@ -3,7 +3,7 @@
 function TrustBar() {
   const items=[['shield-check','Risk-first framework'],['candlestick-chart','Live trade breakdowns'],['users','15+ traders'],['graduation-cap','Mentor-led education'],['bell-ring','Real-time alerts']];
   return <Section style={{padding:'var(--space-7) 0'}}><Container>
-    <div style={{display:'flex',flexWrap:'wrap',gap:'18px 40px',alignItems:'center',justifyContent:'space-between',opacity:0.92}}>
+    <div style={{display:'flex',flexWrap:'wrap',gap:'18px 40px',alignItems:'center',justifyContent:'space-between',opacity:0.92}} className="fwg-trustbar">
       {items.map(([ic,t])=>(<div key={t} style={{display:'flex',alignItems:'center',gap:'10px',color:'var(--text-tertiary)'}}>
         <Icon name={ic} size={18} color="var(--text-gold)"/>
         <span style={{fontFamily:'var(--font-body)',fontSize:'var(--text-sm)',fontWeight:600,letterSpacing:'0.01em'}}>{t}</span>
