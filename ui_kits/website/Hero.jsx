@@ -66,7 +66,7 @@ function Hero() {
               ))}
             </div>
           </KitCard>
-          <div style={{position:'absolute',bottom:'-22px',left:'-22px',width:'150px'}} className="fwg-hide-sm">
+          <div style={{position:'absolute',bottom:'-22px',left:'8px',width:'150px'}} className="fwg-hide-sm">
             <KitCard padding="14px">
               <div style={{display:'flex',alignItems:'center',gap:'8px',marginBottom:'8px'}}>
                 <Icon name="shield-check" size={16} color="var(--text-gold)"/>
