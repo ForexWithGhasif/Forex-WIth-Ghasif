@@ -285,7 +285,7 @@ function Footer() {
         </div>
       </div>
 
-      <div style={{padding:'var(--space-6) 0',display:'flex',justifyContent:'space-between',alignItems:'center',gap:'16px',flexWrap:'wrap'}}>
+      <div style={{padding:'var(--space-6) 0',display:'flex',justifyContent:'space-between',alignItems:'center',gap:'16px',flexWrap:'wrap'}} className="fwg-footer-bottom">
         <span style={{fontSize:'var(--text-xs)',color:'var(--text-muted)'}}>© 2026 Forex With Ghasif. All rights reserved.</span>
         <span style={{fontSize:'var(--text-xs)',color:'var(--text-muted)',maxWidth:'62ch',lineHeight:1.6,textAlign:'right'}}>
           Risk warning: Trading forex and CFDs carries a high level of risk and may not be suitable for all investors. Never trade with money you cannot afford to lose.

@@ -44,6 +44,11 @@ body { background: transparent; overflow-x: hidden; }
   .fwg-grid-3 { grid-template-columns: 1fr !important; }
   .fwg-hide-mobile { display: none !important; }
   .fwg-foot-grid { gap: var(--space-6) !important; }
+  /* Footer's bottom legal row: on desktop it's copyright-left /
+     risk-warning-right, but once it wraps to its own lines on mobile that
+     mismatched alignment looks lopsided — center both instead. */
+  .fwg-footer-bottom { justify-content: center !important; text-align: center !important; }
+  .fwg-footer-bottom > span { text-align: center !important; }
 }
 
 @media (prefers-reduced-motion: reduce) {
