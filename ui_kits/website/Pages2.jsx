@@ -410,11 +410,6 @@ function PhoneInput({ value, onChange, country, onCountry, required }) {
   );
 }
 
-const FWG_API_BASE = (typeof window!=='undefined' && window.FWG_API_BASE) ||
-  (typeof window!=='undefined' && window.location && (window.location.protocol==='file:' || /^(localhost|127\.0\.0\.1)$/.test(window.location.hostname))
-    ? 'http://localhost:5000'
-    : '');
-
 function ContactForm() {
   const [sent,setSent]=React.useState(false);
   const [f,setF]=React.useState({name:'',email:'',phone:'',topic:'VIP Signals',message:''});
@@ -427,7 +422,7 @@ function ContactForm() {
   const handleSubmit=async(e)=>{
     e.preventDefault();
     try{
-      const res=await fetch(`${FWG_API_BASE}/api/contact`,{
+      const res=await fetch(`${window.FWG_API_BASE}/api/contact`,{
         method:'POST',
         headers:{'Content-Type':'application/json'},
         body:JSON.stringify(f),

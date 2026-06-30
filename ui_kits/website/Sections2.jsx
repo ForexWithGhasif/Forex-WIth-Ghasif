@@ -199,9 +199,43 @@ function CTASection() {
   </Container></Section>;
 }
 
+const NEWSLETTER_EMAIL_RE=/^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 function Footer() {
   const [email,setEmail]=React.useState('');
   const [focus,setFocus]=React.useState(false);
+  const [subscribing,setSubscribing]=React.useState(false);
+  const [status,setStatus]=React.useState(null);
+
+  const handleSubscribe=async(e)=>{
+    e.preventDefault();
+    if(subscribing) return;
+    if(!NEWSLETTER_EMAIL_RE.test(email.trim())){
+      setStatus({type:'error',text:'Enter a valid email address.'});
+      return;
+    }
+    setSubscribing(true);
+    setStatus(null);
+    try{
+      const res=await fetch(`${window.FWG_API_BASE}/api/newsletter`,{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({email:email.trim()}),
+      });
+      const data=await res.json().catch(()=>({}));
+      if(!res.ok || !data.success){
+        setStatus({type:'error',text:data.message||'Something went wrong. Please try again.'});
+        return;
+      }
+      setStatus({type:'success',text:data.message||"You're subscribed."});
+      setEmail('');
+    }catch(err){
+      setStatus({type:'error',text:'Something went wrong. Please try again.'});
+    }finally{
+      setSubscribing(false);
+    }
+  };
+
   const cols=[
     ['Trading',[['VIP Signals','services.html'],['Market Analysis','services.html'],['Performance','performance.html'],['Trading Blog','blog.html']]],
     ['Learn',[['Mentorship','services.html'],['Risk Management','services.html'],['Community','services.html'],['Free Resources','blog.html']]],
@@ -240,11 +274,14 @@ function Footer() {
           <div style={{fontFamily:'var(--font-display)',fontSize:'var(--text-md)',fontWeight:600,marginBottom:'4px'}}>Weekly market edge, in your inbox</div>
           <div style={{fontSize:'var(--text-sm)',color:'var(--text-tertiary)'}}>Free analysis and one high-conviction idea every Sunday. No spam.</div>
         </div>
-        <div style={{display:'flex',alignItems:'center',gap:'8px',padding:'5px 6px 5px 16px',borderRadius:'var(--radius-md)',background:'var(--surface-inset)',border:`1px solid ${focus?'var(--border-gold)':'var(--border-default)'}`,minWidth:'320px',boxShadow:focus?'0 0 0 3px var(--accent-soft-bg)':'none',transition:'border-color var(--dur-fast), box-shadow var(--dur-fast)'}}>
-          <Icon name="mail" size={17} color="var(--text-tertiary)"/>
-          <input value={email} onChange={e=>setEmail(e.target.value)} onFocus={()=>setFocus(true)} onBlur={()=>setFocus(false)} placeholder="you@email.com" type="email"
-            style={{flex:1,minWidth:0,background:'transparent',border:'none',outline:'none',color:'var(--text-primary)',fontFamily:'var(--font-body)',fontSize:'var(--text-sm)',padding:'10px 0'}}/>
-          <KitButton variant="primary" size="sm">Subscribe</KitButton>
+        <div>
+          <form onSubmit={handleSubscribe} style={{display:'flex',alignItems:'center',gap:'8px',padding:'5px 6px 5px 16px',borderRadius:'var(--radius-md)',background:'var(--surface-inset)',border:`1px solid ${focus?'var(--border-gold)':'var(--border-default)'}`,minWidth:'320px',boxShadow:focus?'0 0 0 3px var(--accent-soft-bg)':'none',transition:'border-color var(--dur-fast), box-shadow var(--dur-fast)'}}>
+            <Icon name="mail" size={17} color="var(--text-tertiary)"/>
+            <input value={email} onChange={e=>setEmail(e.target.value)} onFocus={()=>setFocus(true)} onBlur={()=>setFocus(false)} placeholder="you@email.com" type="email" disabled={subscribing} required
+              style={{flex:1,minWidth:0,background:'transparent',border:'none',outline:'none',color:'var(--text-primary)',fontFamily:'var(--font-body)',fontSize:'var(--text-sm)',padding:'10px 0'}}/>
+            <KitButton as="button" type="submit" variant="primary" size="sm" disabled={subscribing}>Subscribe</KitButton>
+          </form>
+          {status&&<div style={{fontSize:'var(--text-xs)',marginTop:'8px',color:status.type==='success'?'var(--bullish)':'var(--bearish)'}}>{status.text}</div>}
         </div>
       </div>
 

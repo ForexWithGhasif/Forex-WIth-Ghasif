@@ -61,4 +61,17 @@ async function sendContactEmail({ name, email, phone, topic, message }) {
   });
 }
 
-module.exports = { sendContactEmail };
+async function sendNewsletterSubscription({ email }) {
+  const recipient = contactEmail || smtp.user;
+
+  await getTransporter().sendMail({
+    from: `"Forex With Ghasif Website" <${smtp.user}>`,
+    to: recipient,
+    replyTo: email,
+    subject: 'New newsletter subscriber',
+    text: `New newsletter subscription request:\nEmail: ${email}`,
+    html: `<p><strong>New newsletter subscription request</strong></p><p>Email: ${escapeHtml(email)}</p>`,
+  });
+}
+
+module.exports = { sendContactEmail, sendNewsletterSubscription };

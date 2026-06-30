@@ -121,3 +121,11 @@ window.FWG_SOCIAL = {
   facebook:  'https://www.facebook.com/share/18oPFFMWEm/',
   whatsapp:  'https://wa.me/923047488945?text=Hi%2C%20I%20visited%20your%20website%20and%20would%20like%20to%20know%20more%20about%20your%20trading%20services.',
 };
+
+/* Backend API base (single source of truth). Same-origin in production;
+   falls back to the local dev server when opened via file:// or localhost. */
+window.FWG_API_BASE = window.FWG_API_BASE || (
+  (window.location.protocol==='file:' || /^(localhost|127\.0\.0\.1)$/.test(window.location.hostname))
+    ? 'http://localhost:5000'
+    : ''
+);
