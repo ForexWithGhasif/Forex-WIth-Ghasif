@@ -4,6 +4,7 @@ const { clientOrigin } = require('./config/env');
 const healthRoutes = require('./routes/healthRoutes');
 const contactRoutes = require('./routes/contactRoutes');
 const newsletterRoutes = require('./routes/newsletterRoutes');
+const marketDataRoutes = require('./routes/marketDataRoutes');
 
 const app = express();
 
@@ -13,6 +14,7 @@ app.use(express.json());
 app.use('/api/health', healthRoutes);
 app.use('/api/contact', contactRoutes);
 app.use('/api/newsletter', newsletterRoutes);
+app.use('/api/market-prices', marketDataRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ success: false, message: 'Not found' });

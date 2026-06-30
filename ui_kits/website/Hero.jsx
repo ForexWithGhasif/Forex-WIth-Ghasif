@@ -1,13 +1,15 @@
 /* FWG, hero with value prop, CTAs, trust strip + floating dashboard. */
+const HERO_TICKS_FALLBACK=[
+  {pair:'EUR/USD',price:'1.1410',chg:'+0.18%',dir:'up'},
+  {pair:'GBP/USD',price:'1.3245',chg:'-0.12%',dir:'down'},
+  {pair:'XAU/USD',price:'4,089.26',chg:'+1.54%',dir:'up'},
+  {pair:'USD/JPY',price:'161.52',chg:'+0.21%',dir:'up'},
+  {pair:'GBP/JPY',price:'213.94',chg:'-0.08%',dir:'down'},
+  {pair:'AUD/USD',price:'0.6512',chg:'+0.24%',dir:'up'},
+];
+
 function Hero() {
-  const ticks=[
-    {pair:'EUR/USD',price:'1.1410',chg:'+0.18%',dir:'up'},
-    {pair:'GBP/USD',price:'1.3245',chg:'-0.12%',dir:'down'},
-    {pair:'XAU/USD',price:'4,089.26',chg:'+1.54%',dir:'up'},
-    {pair:'USD/JPY',price:'161.52',chg:'+0.21%',dir:'up'},
-    {pair:'GBP/JPY',price:'213.94',chg:'-0.08%',dir:'down'},
-    {pair:'AUD/USD',price:'0.6512',chg:'+0.24%',dir:'up'},
-  ];
+  const ticks=useLiveTicks(HERO_TICKS_FALLBACK);
   return (
     <section id="top" style={{position:'relative',overflow:'hidden',padding:'calc(var(--space-9) + 20px) var(--gutter) var(--space-10)'}}>
       <div style={{position:'absolute',inset:0,background:'var(--hero-glow)',pointerEvents:'none'}}/>
@@ -27,7 +29,7 @@ function Hero() {
           </div>
           <div style={{display:'flex',gap:'var(--space-7)',marginTop:'var(--space-4)',flexWrap:'wrap'}}>
             <KitStat value="78.4%" label="Avg win rate" />
-            <KitStat value="50+" label="Active members" />
+            <KitStat value="15+" label="Active members" />
             <KitStat value="+612" label="Pips · 30 days" direction="up" />
           </div>
         </div>

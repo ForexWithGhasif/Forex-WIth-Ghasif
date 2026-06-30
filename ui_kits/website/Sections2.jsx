@@ -188,7 +188,7 @@ function CTASection() {
           Stop gambling. Start <span className="fwg-gold-text">trading with a system.</span>
         </h2>
         <p style={{fontSize:'var(--text-md)',lineHeight:1.65,color:'var(--text-secondary)',margin:0,maxWidth:'48ch'}}>
-          Join 50+ traders building real, repeatable consistency with Forex With Ghasif. Start free, upgrade when you’re ready.
+          Join 15+ traders building real, repeatable consistency with Forex With Ghasif. Start free, upgrade when you’re ready.
         </p>
         <div style={{display:'flex',gap:'12px',flexWrap:'wrap',justifyContent:'center',marginTop:'4px'}}>
           <KitButton as="a" href="pricing.html" variant="primary" size="lg" iconRight={<Icon name="arrow-up-right" size={18}/>}>Join VIP Signals</KitButton>

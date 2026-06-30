@@ -51,7 +51,7 @@ function IntroBand() {
         <KitButton as="a" href="about.html" variant="secondary" iconRight={<Icon name="arrow-right" size={16}/>}>Our story &amp; philosophy</KitButton>
       </div>
       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'14px'}}>
-        {[['78.4%','Avg win rate'],['50+','Active members'],['1+ year','Trading the markets'],['1:3.2','Avg reward-to-risk']].map(([v,l])=>(
+        {[['78.4%','Avg win rate'],['15+','Active members'],['1+ year','Trading the markets'],['1:3.2','Avg reward-to-risk']].map(([v,l])=>(
           <KitCard key={l} padding="20px"><KitStat value={v} label={l} /></KitCard>
         ))}
       </div>

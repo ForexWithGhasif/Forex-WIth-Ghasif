@@ -113,7 +113,32 @@ function LazyImg({src,alt='',style,eager=false,imgProps={}}) {
   return <img ref={ref} src={shown?src:undefined} alt={alt} decoding="async" style={style} {...imgProps}/>;
 }
 
-Object.assign(window,{KitButton,KitBadge,KitCard,KitStat,KitKicker,Icon,SocialGlyph,LazyImg});
+/* Live market prices: fetches the backend's /api/market-prices, refreshes every
+   5 minutes, and falls back to the given static defaults if the fetch fails so
+   the UI never breaks or goes empty. Shared by every section that shows ticks. */
+function useLiveTicks(fallback) {
+  const [ticks,setTicks]=React.useState(fallback);
+  React.useEffect(()=>{
+    let cancelled=false;
+    const load=async()=>{
+      try{
+        const res=await fetch(`${window.FWG_API_BASE}/api/market-prices`);
+        const data=await res.json().catch(()=>null);
+        if(!cancelled && res.ok && data && data.success && Array.isArray(data.data) && data.data.length){
+          setTicks(data.data);
+        }
+      }catch(err){
+        // keep showing the last known/fallback ticks on failure
+      }
+    };
+    load();
+    const id=setInterval(load,5*60*1000);
+    return ()=>{ cancelled=true; clearInterval(id); };
+  },[]);
+  return ticks;
+}
+
+Object.assign(window,{KitButton,KitBadge,KitCard,KitStat,KitKicker,Icon,SocialGlyph,LazyImg,useLiveTicks});
 
 /* Official social/contact destinations (single source of truth). */
 window.FWG_SOCIAL = {

@@ -31,7 +31,7 @@ function ResultsTable() {
       </div>
       </div>
     </KitCard>
-    <p style={{fontSize:'var(--text-xs)',color:'var(--text-muted)',marginTop:'var(--space-5)',maxWidth:'64ch',lineHeight:1.6}}>
+    <p style={{fontSize:'var(--text-xs)',color:'var(--text-muted)',margin:'var(--space-5) auto 0',maxWidth:'64ch',lineHeight:1.6,textAlign:'center'}}>
       Figures reflect the model VIP account and are net of typical spreads. Past performance is not indicative of future results; individual results vary with execution and risk settings.
     </p>
   </Container></Section>;
@@ -145,6 +145,108 @@ const ONE_PERCENT_ARTICLE = {
   ],
 };
 
+const BLOG_ARTICLES = [
+  {
+    category:'Psychology', read:'8 min', date:'June 2026', author:'Ghasif',
+    title:'Trading the Plan, Not the Feeling',
+    img:'../../assets/img/blog-plan.jpg',
+    excerpt:'A framework for removing emotion when the market gets loud.',
+    lead:'A trading plan is only useful if you follow it when it is hardest to follow. Here is how to build a plan that survives contact with a live, moving market.',
+    body:[
+      ['h','Why the plan breaks down in real time'],
+      ['p','Every trader writes a plan when they are calm. Then the market moves, the candle spikes through their level, and the plan quietly gets renegotiated in real time. That renegotiation, not a bad strategy, is what actually erodes most accounts.'],
+      ['p','The fix is not more discipline as a personality trait. It is removing the decision from the moment of maximum emotion, by deciding everything in advance: entry, stop, target, and the exact condition that invalidates the idea.'],
+      ['h','Building a plan that holds'],
+      ['p','A plan that survives pressure is specific enough that there is nothing left to decide once price starts moving. If your plan still requires judgment calls mid-trade, it is not finished yet.'],
+      ['list','Write the entry, stop, and target before you click buy or sell','Define exactly what invalidates the idea, not just where price hurts','Decide your reaction to being stopped out before it happens','Review the plan after the trade closes, win or lose'],
+      ['h','The feeling is data, not a signal'],
+      ['p','Fear and excitement are useful information about your risk sizing, not instructions for what to do next. When a trade feels unbearable to watch, that is usually a sign the position is too large for the account, not a sign the trade is wrong.'],
+    ],
+  },
+  {
+    category:'Market structure', read:'7 min', date:'June 2026', author:'Ghasif',
+    title:'Reading Liquidity Like the Banks Do',
+    img:'../../assets/img/blog-liquidity.jpg',
+    excerpt:'Spot where smart money is positioned, and why retail enters wrong.',
+    lead:'Price does not move randomly between support and resistance. It moves toward the places where the most orders are sitting. Here is how to start reading the market that way.',
+    body:[
+      ['h','Liquidity is the real magnet'],
+      ['p','Large participants cannot fill big orders without moving the market against themselves, so they look for pools of resting orders: stop-losses clustered above old highs, breakout entries clustered below old lows. Price is frequently drawn toward these pools before it reverses.'],
+      ['p','This is why an obvious-looking breakout often fails immediately after triggering. The move was never about the breakout, it was about the liquidity sitting just beyond it.'],
+      ['h','What to look for instead'],
+      ['p','Rather than trading the first touch of an obvious level, watch what happens after price sweeps it. A sharp rejection back through the level, on a clear spike of momentum, tells you the liquidity has been taken and the real move may be starting in the opposite direction.'],
+      ['quote','The crowd provides the liquidity. The structure tells you who is using it.'],
+      ['h','Applying it without overcomplicating'],
+      ['p','You do not need a complex theory to use this. Mark the obvious highs and lows everyone else can see, wait for a sweep beyond them, then look for confirmation before entering in the direction of the reversal. Patience at this step is what separates a structured entry from a guess.'],
+    ],
+  },
+  {
+    category:'Strategy', read:'6 min', date:'June 2026', author:'Ghasif',
+    title:'Building a Repeatable Trading Routine',
+    img:'../../assets/img/blog-routine.jpg',
+    excerpt:'The daily process that turns random entries into consistent results.',
+    lead:'Consistency is not a personality trait some traders are born with. It is the output of a routine that removes randomness from the day. Here is the structure we teach.',
+    body:[
+      ['h','Why routine beats motivation'],
+      ['p','Motivation is unreliable; it is high after a win and low after a loss, which is exactly backwards from when discipline matters most. A routine you follow regardless of how the last trade went is what actually produces consistent results over time.'],
+      ['h','The three sessions that matter'],
+      ['list','Pre-market: review the economic calendar and mark key levels before price opens','In-session: trade only the setups defined in your plan, log every entry as it happens','Post-market: review every trade taken, win or lose, against the original plan'],
+      ['p','Most traders only do the middle step. The review at the end of the day is where the actual improvement happens, because it is the only point where you can honestly compare what you planned against what you did.'],
+      ['h','Keeping it sustainable'],
+      ['p','A routine that takes three hours a day will not survive a busy week. Build the smallest version that still covers preparation, execution, and review, then protect that minimum every single trading day. Consistency compounds; intensity does not.'],
+    ],
+  },
+  {
+    category:'Risk management', read:'5 min', date:'June 2026', author:'Ghasif',
+    title:'Drawdown: The Number That Matters Most',
+    img:'../../assets/img/blog-drawdown.jpg',
+    excerpt:'How to think about losing streaks before they happen to you.',
+    lead:'Most traders track win rate. The number that actually determines whether you survive long enough to compound is maximum drawdown. Here is how to think about it before you are in one.',
+    body:[
+      ['h','Why drawdown, not win rate, decides survival'],
+      ['p','A strategy with a 75% win rate can still blow up an account if the losses are oversized relative to the wins. A strategy with a 40% win rate can compound steadily for years if losses are kept small and consistent. Drawdown is the number that tells you which kind of trader you are.'],
+      ['p','The math is unforgiving on the way back up: a 20% drawdown needs a 25% gain to recover, a 50% drawdown needs a 100% gain. The deeper the hole, the more disproportionate the climb out.'],
+      ['h','Setting a drawdown limit before you need one'],
+      ['p','Decide your maximum acceptable drawdown while you are calm and rational, not mid-losing-streak. A common, sustainable threshold is a pause-and-review trigger at 10% to 15% of account equity, well before the math turns against you.'],
+      ['h','What to do when you hit the limit'],
+      ['p','Stop trading new ideas, review every loss in the streak against your plan, and only resume once you can identify what, if anything, actually went wrong. Sometimes the answer is nothing, the streak was normal variance, and that is fine too.'],
+    ],
+  },
+  {
+    category:'News', read:'6 min', date:'June 2026', author:'Ghasif',
+    title:'Trading High-Impact News Safely',
+    img:'../../assets/img/blog-news.jpg',
+    excerpt:'What economic releases actually mean for your open risk.',
+    lead:'High-impact news events can move a pair further in one minute than it normally moves in a day. Here is how to manage that risk without simply avoiding the calendar altogether.',
+    body:[
+      ['h','What actually happens during a release'],
+      ['p','In the seconds around a major release, spreads widen, slippage increases, and liquidity briefly thins out. Stop-losses can still trigger, but the price you get filled at may be meaningfully worse than the level you set. This is a structural feature of news events, not a broker problem.'],
+      ['h','Managing risk around the calendar'],
+      ['list','Know the high-impact releases for the pairs you trade before the week starts','Reduce position size or stand aside heading into events you are not trading specifically','If holding through news, size the position assuming your stop may slip','Never widen a stop during the event to avoid an early exit'],
+      ['h','Trading the event on purpose'],
+      ['p','If you do trade news deliberately, treat it as its own strategy with its own rules, not an extension of your normal setups. Wait for the initial spike and reaction to settle before entering, rather than trying to catch the first, most chaotic tick.'],
+      ['p','The goal is not to avoid volatility, it is to make sure volatility never arrives as a surprise to your risk plan.'],
+    ],
+  },
+  {
+    category:'Psychology', read:'7 min', date:'June 2026', author:'Ghasif',
+    title:'Why Most Traders Quit Too Early',
+    img:'../../assets/img/blog-consistency.jpg',
+    excerpt:'The consistency curve, and how to stay on it long enough to win.',
+    lead:'Most traders do not fail because their edge does not work. They fail because they abandon a sound process before it has had enough trades to express itself. Here is the curve that explains why.',
+    body:[
+      ['h','The gap between effort and results'],
+      ['p','A genuine edge does not show up evenly. It shows up as a noisy, uneven equity curve that only becomes clearly profitable over a large enough sample of trades. Early on, a sound strategy and a flawed one can look almost identical.'],
+      ['p','Most traders quit, switch strategies, or start oversizing positions to "catch up" precisely during this noisy early period, before the edge has had room to express itself. That decision, not the strategy itself, is what causes the failure.'],
+      ['h','What staying on the curve requires'],
+      ['p','Staying in requires two things: risk small enough that a losing streak is financially survivable, and a sample size large enough to judge a strategy honestly, typically measured in hundreds of trades, not tens.'],
+      ['quote','The traders who last are not the ones who never doubt the process. They are the ones who keep risk small enough to keep doubting it and still survive.'],
+      ['h','A simple test before you change anything'],
+      ['p','Before abandoning a strategy, ask whether you have actually given it a statistically meaningful sample at controlled risk. If the honest answer is no, the next step is not a new strategy, it is more disciplined repetition of the one you have.'],
+    ],
+  },
+];
+
 function ArticleModal({ article, onClose }) {
   React.useEffect(()=>{
     const onKey=(e)=>{ if(e.key==='Escape') onClose(); };
@@ -183,7 +285,7 @@ function ArticleModal({ article, onClose }) {
         <div style={{padding:'0 clamp(22px,5vw,52px) clamp(32px,5vw,52px)',marginTop:'-30px',position:'relative'}}>
           <div style={{display:'flex',alignItems:'center',gap:'10px',marginBottom:'16px',flexWrap:'wrap'}}>
             <KitBadge tone="solid">{article.category}</KitBadge>
-            <span style={{fontFamily:'var(--font-mono)',fontSize:'var(--text-xs)',color:'var(--text-tertiary)'}}>{article.read}</span>
+            <span style={{fontFamily:'var(--font-mono)',fontSize:'var(--text-xs)',color:'var(--text-tertiary)'}}>{article.read.includes('read')?article.read:`${article.read} read`}</span>
             <span style={{fontFamily:'var(--font-mono)',fontSize:'var(--text-xs)',color:'var(--text-muted)'}}>· {article.date}</span>
           </div>
           <h1 style={{fontFamily:'var(--font-display)',fontWeight:800,fontSize:'var(--text-2xl)',lineHeight:1.1,letterSpacing:'-0.02em',color:'var(--text-primary)',margin:'0 0 16px'}}>{article.title}</h1>
@@ -209,19 +311,12 @@ function ArticleModal({ article, onClose }) {
 function BlogIndex() {
   const cats=['All','Risk management','Psychology','Market structure','Strategy','News'];
   const featured=['Risk management','The 1% rule that keeps you in the game','Why position sizing, not entries, is the real difference between traders who last and those who blow up. A practical walkthrough of the math and the mindset.','9 min','../../assets/img/blog-1percent.jpg'];
-  const posts=[
-    ['Psychology','Trading the plan, not the feeling','A framework for removing emotion when the market gets loud.','8 min','../../assets/img/blog-plan.jpg'],
-    ['Market structure','Reading liquidity like the banks do','Spot where smart money is positioned, and why retail enters wrong.','7 min','../../assets/img/blog-liquidity.jpg'],
-    ['Strategy','Building a repeatable trading routine','The daily process that turns random entries into consistent results.','6 min','../../assets/img/blog-routine.jpg'],
-    ['Risk management','Drawdown: the number that matters most','How to think about losing streaks before they happen to you.','5 min','../../assets/img/blog-drawdown.jpg'],
-    ['News','Trading high-impact news safely','What economic releases actually mean for your open risk.','6 min','../../assets/img/blog-news.jpg'],
-    ['Psychology','Why most traders quit too early','The consistency curve, and how to stay on it long enough to win.','7 min','../../assets/img/blog-consistency.jpg'],
-  ];
+  const posts=BLOG_ARTICLES;
   const [cat,setCat]=React.useState('All');
-  const [open,setOpen]=React.useState(false);
-  const shown=cat==='All'?posts:posts.filter(p=>p[0]===cat);
+  const [openArticle,setOpenArticle]=React.useState(null);
+  const shown=cat==='All'?posts:posts.filter(p=>p.category===cat);
   return <React.Fragment>
-    {open && <ArticleModal article={ONE_PERCENT_ARTICLE} onClose={()=>setOpen(false)} />}
+    {openArticle && <ArticleModal article={openArticle} onClose={()=>setOpenArticle(null)} />}
     <Section><Container>
       {/* featured */}
       <KitCard padding="0" interactive style={{overflow:'hidden',marginBottom:'var(--space-7)'}}>
@@ -237,7 +332,7 @@ function BlogIndex() {
             </div>
             <h2 style={{fontFamily:'var(--font-display)',fontSize:'var(--text-xl)',fontWeight:700,margin:'0 0 12px',lineHeight:1.2}}>{featured[1]}</h2>
             <p style={{fontSize:'var(--text-sm)',lineHeight:1.65,color:'var(--text-secondary)',margin:'0 0 18px',maxWidth:'48ch'}}>{featured[2]}</p>
-            <div><KitButton variant="primary" onClick={()=>setOpen(true)} iconRight={<Icon name="arrow-right" size={15}/>}>Read article</KitButton></div>
+            <div><KitButton variant="primary" onClick={()=>setOpenArticle(ONE_PERCENT_ARTICLE)} iconRight={<Icon name="arrow-right" size={15}/>}>Read article</KitButton></div>
           </div>
         </div>
       </KitCard>
@@ -252,18 +347,19 @@ function BlogIndex() {
       </div>
 
       <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:'18px'}} className="fwg-grid-3">
-        {shown.map(([c,t,d,read,img])=>(
-          <KitCard key={t} interactive padding="0" style={{overflow:'hidden'}}>
+        {shown.map(a=>(
+          <KitCard key={a.title} interactive padding="0" onClick={()=>setOpenArticle(a)} style={{overflow:'hidden',cursor:'pointer'}}>
             <div style={{height:'150px',position:'relative',borderBottom:'1px solid var(--border-subtle)'}}>
-              <LazyImg src={img} alt={t} style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover'}}/>
+              <LazyImg src={a.img} alt={a.title} style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover'}}/>
             </div>
             <div style={{padding:'20px'}}>
               <div style={{display:'flex',alignItems:'center',gap:'10px',marginBottom:'12px'}}>
-                <KitBadge tone="gold">{c}</KitBadge>
-                <span style={{fontSize:'var(--text-xs)',color:'var(--text-muted)',fontFamily:'var(--font-mono)'}}>{read}</span>
+                <KitBadge tone="gold">{a.category}</KitBadge>
+                <span style={{fontSize:'var(--text-xs)',color:'var(--text-muted)',fontFamily:'var(--font-mono)'}}>{a.read}</span>
               </div>
-              <h3 style={{fontFamily:'var(--font-display)',fontSize:'var(--text-md)',fontWeight:600,margin:'0 0 8px',lineHeight:1.25}}>{t}</h3>
-              <p style={{fontSize:'var(--text-sm)',lineHeight:1.6,color:'var(--text-secondary)',margin:0}}>{d}</p>
+              <h3 style={{fontFamily:'var(--font-display)',fontSize:'var(--text-md)',fontWeight:600,margin:'0 0 8px',lineHeight:1.25}}>{a.title}</h3>
+              <p style={{fontSize:'var(--text-sm)',lineHeight:1.6,color:'var(--text-secondary)',margin:'0 0 16px'}}>{a.excerpt}</p>
+              <KitButton variant="outlineGold" size="sm" onClick={()=>setOpenArticle(a)} iconRight={<Icon name="arrow-right" size={14}/>}>Read Article</KitButton>
             </div>
           </KitCard>
         ))}
