@@ -410,7 +410,10 @@ function PhoneInput({ value, onChange, country, onCountry, required }) {
   );
 }
 
-const FWG_API_BASE = (typeof window!=='undefined' && window.FWG_API_BASE) || 'http://localhost:5000';
+const FWG_API_BASE = (typeof window!=='undefined' && window.FWG_API_BASE) ||
+  (typeof window!=='undefined' && window.location && (window.location.protocol==='file:' || /^(localhost|127\.0\.0\.1)$/.test(window.location.hostname))
+    ? 'http://localhost:5000'
+    : '');
 
 function ContactForm() {
   const [sent,setSent]=React.useState(false);

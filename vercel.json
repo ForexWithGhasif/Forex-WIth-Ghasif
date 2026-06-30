@@ -1,5 +1,6 @@
 {
   "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/index" },
     { "source": "/", "destination": "/ui_kits/website/index.html" },
     { "source": "/about", "destination": "/ui_kits/website/about.html" },
     { "source": "/services", "destination": "/ui_kits/website/services.html" },
