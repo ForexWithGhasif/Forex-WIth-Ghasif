@@ -66,16 +66,6 @@ function Hero() {
               ))}
             </div>
           </KitCard>
-          <div style={{position:'absolute',bottom:'-22px',left:'8px',width:'150px'}} className="fwg-hide-sm">
-            <KitCard padding="14px">
-              <div style={{display:'flex',alignItems:'center',gap:'8px',marginBottom:'8px'}}>
-                <Icon name="shield-check" size={16} color="var(--text-gold)"/>
-                <span style={{fontSize:'var(--text-2xs)',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.12em',color:'var(--text-tertiary)'}}>Risk-first</span>
-              </div>
-              <span style={{fontFamily:'var(--font-mono)',fontSize:'var(--text-lg)',fontWeight:600}}>1 : 3.2</span>
-              <div style={{fontSize:'var(--text-2xs)',color:'var(--text-muted)',marginTop:'2px'}}>Avg reward-to-risk</div>
-            </KitCard>
-          </div>
         </div>
       </div>
 

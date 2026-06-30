@@ -93,7 +93,7 @@ function Signals() {
       <div>
         <Head kicker="VIP Signals" title="Signals you can trust and learn from"
           lead="No black-box alerts. Every VIP signal comes with the full trade plan and the logic behind it, so each trade sharpens your own edge." />
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'12px',marginBottom:'24px'}}>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'12px',marginBottom:'24px'}} className="fwg-grid-2">
           {incl.map(t=>(<div key={t} style={{display:'flex',gap:'10px',alignItems:'flex-start'}}>
             <Icon name="check" size={16} color="var(--text-gold)" style={{marginTop:'2px',flexShrink:0}}/>
             <span style={{fontSize:'var(--text-sm)',color:'var(--text-secondary)',lineHeight:1.5}}>{t}</span>
@@ -109,7 +109,7 @@ function Signals() {
           <span style={{fontFamily:'var(--font-mono)',fontSize:'var(--text-xs)',color:'var(--text-tertiary)'}}>Posted 2m ago</span>
         </div>
         <div style={{padding:'14px 18px'}}><CandleChart height={130}/></div>
-        <div style={{padding:'0 18px 18px',display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:'10px'}}>
+        <div style={{padding:'0 18px 18px',display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:'10px'}} className="fwg-grid-3">
           {[['Entry','2,338.4','var(--text-primary)'],['Stop','2,332.0','var(--bearish)'],['Target','2,357.5','var(--bullish)']].map(([l,v,c])=>(
             <div key={l} style={{padding:'12px',borderRadius:'var(--radius-md)',background:'var(--surface-inset)',border:'1px solid var(--border-subtle)'}}>
               <div style={{fontSize:'var(--text-2xs)',textTransform:'uppercase',letterSpacing:'0.12em',color:'var(--text-muted)',marginBottom:'6px'}}>{l}</div>

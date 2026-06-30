@@ -42,7 +42,7 @@ body { background: transparent; overflow-x: hidden; }
 
 @media (max-width: 620px) {
   .fwg-grid-3 { grid-template-columns: 1fr !important; }
-  .fwg-hide-sm, .fwg-hide-mobile { display: none !important; }
+  .fwg-hide-mobile { display: none !important; }
   .fwg-foot-grid { gap: var(--space-6) !important; }
 }
 

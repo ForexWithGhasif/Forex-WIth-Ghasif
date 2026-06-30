@@ -50,7 +50,7 @@ function IntroBand() {
         </p>
         <KitButton as="a" href="/about" variant="secondary" iconRight={<Icon name="arrow-right" size={16}/>}>Our story &amp; philosophy</KitButton>
       </div>
-      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'14px'}}>
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'14px'}} className="fwg-grid-2">
         {[['78.4%','Avg win rate'],['15+','Active members'],['1+ year','Trading the markets'],['1:3.2','Avg reward-to-risk']].map(([v,l])=>(
           <KitCard key={l} padding="20px"><KitStat value={v} label={l} /></KitCard>
         ))}
@@ -176,7 +176,7 @@ function ServiceRow({ icon, name, blurb, points, badge, href, reverse, img }) {
         </div>
         <h3 style={{fontFamily:'var(--font-display)',fontSize:'var(--text-xl)',fontWeight:700,margin:'0 0 10px',letterSpacing:'-0.01em'}}>{name}</h3>
         <p style={{fontSize:'var(--text-md)',lineHeight:1.65,color:'var(--text-secondary)',margin:'0 0 18px',maxWidth:'46ch'}}>{blurb}</p>
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'10px',marginBottom:'22px'}}>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'10px',marginBottom:'22px'}} className="fwg-grid-2">
           {points.map(p=><FeatureCheck key={p}>{p}</FeatureCheck>)}
         </div>
         <KitButton as="a" href={href||'/pricing'} variant="outlineGold" iconRight={<Icon name="arrow-right" size={16}/>}>Learn more</KitButton>

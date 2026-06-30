@@ -19,7 +19,7 @@ function Performance() {
         </div>
         <div style={{padding:'22px'}}><EquityCurve height={220}/></div>
       </KitCard>
-      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'14px'}}>
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'14px'}} className="fwg-grid-2">
         {stats.map(([v,l,d,dir])=>(
           <KitCard key={l} padding="20px" style={{display:'flex',flexDirection:'column',justifyContent:'space-between'}}>
             <KitStat value={v} label={l} />
@@ -274,8 +274,8 @@ function Footer() {
           <div style={{fontFamily:'var(--font-display)',fontSize:'var(--text-md)',fontWeight:600,marginBottom:'4px'}}>Weekly market edge, in your inbox</div>
           <div style={{fontSize:'var(--text-sm)',color:'var(--text-tertiary)'}}>Free analysis and one high-conviction idea every Sunday. No spam.</div>
         </div>
-        <div>
-          <form onSubmit={handleSubscribe} style={{display:'flex',alignItems:'center',gap:'8px',padding:'5px 6px 5px 16px',borderRadius:'var(--radius-md)',background:'var(--surface-inset)',border:`1px solid ${focus?'var(--border-gold)':'var(--border-default)'}`,minWidth:'320px',boxShadow:focus?'0 0 0 3px var(--accent-soft-bg)':'none',transition:'border-color var(--dur-fast), box-shadow var(--dur-fast)'}}>
+        <div style={{flex:'1 1 280px',maxWidth:'420px'}}>
+          <form onSubmit={handleSubscribe} style={{display:'flex',alignItems:'center',gap:'8px',padding:'5px 6px 5px 16px',borderRadius:'var(--radius-md)',background:'var(--surface-inset)',border:`1px solid ${focus?'var(--border-gold)':'var(--border-default)'}`,boxShadow:focus?'0 0 0 3px var(--accent-soft-bg)':'none',transition:'border-color var(--dur-fast), box-shadow var(--dur-fast)'}}>
             <Icon name="mail" size={17} color="var(--text-tertiary)"/>
             <input value={email} onChange={e=>setEmail(e.target.value)} onFocus={()=>setFocus(true)} onBlur={()=>setFocus(false)} placeholder="you@email.com" type="email" disabled={subscribing} required
               style={{flex:1,minWidth:0,background:'transparent',border:'none',outline:'none',color:'var(--text-primary)',fontFamily:'var(--font-body)',fontSize:'var(--text-sm)',padding:'10px 0'}}/>
