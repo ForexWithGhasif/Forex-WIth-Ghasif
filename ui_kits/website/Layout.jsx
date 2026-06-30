@@ -60,7 +60,7 @@ function Nav({ active, theme, onToggleTheme }) {
             onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border-default)';e.currentTarget.style.color='var(--text-secondary)';}}>
             <Icon name={theme==='dark'?'sun':'moon'} size={18}/>
           </button>
-          <span className="fwg-hide-mobile"><KitButton as="a" href="/pricing" variant="primary" size="sm" iconRight={<Icon name="arrow-up-right" size={16}/>}>Join VIP</KitButton></span>
+          <span className="fwg-hide-mobile"><KitButton as="a" href={(window.FWG_SOCIAL||{}).whatsappCommunity} target="_blank" rel="noopener noreferrer" variant="primary" size="sm" iconRight={<Icon name="arrow-up-right" size={16}/>}>Join VIP Community</KitButton></span>
           <button className="fwg-menu-btn" onClick={()=>setOpen(o=>!o)} aria-label="Menu" aria-expanded={open}
             style={{display:'none',width:'40px',height:'40px',alignItems:'center',justifyContent:'center',borderRadius:'var(--radius-md)',
               background:'var(--surface-card)',border:'1px solid var(--border-default)',color:'var(--text-primary)',cursor:'pointer'}}>

@@ -145,6 +145,8 @@ window.FWG_SOCIAL = {
   instagram: 'https://www.instagram.com/forexwithghasif/',
   facebook:  'https://www.facebook.com/share/18oPFFMWEm/',
   whatsapp:  'https://wa.me/923047488945?text=Hi%2C%20I%20visited%20your%20website%20and%20would%20like%20to%20know%20more%20about%20your%20trading%20services.',
+  whatsappMentorship: 'https://wa.me/923047488945?text=Hi%2C%20I%20want%20to%20join%20your%20Live%20Mentorship%20Plan.%20Can%20you%20please%20tell%20me%20how%20to%20complete%20the%20payment%20Process%20and%20get%20started%3F',
+  whatsappCommunity: 'https://chat.whatsapp.com/CIx7qpadbjb43oCTHKN8Zh',
 };
 
 /* Backend API base (single source of truth). Same-origin in production;

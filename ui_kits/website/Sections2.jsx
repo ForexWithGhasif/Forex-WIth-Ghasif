@@ -63,8 +63,8 @@ function Testimonials() {
 
 function Pricing() {
   const plans=[
-    {name:'VIP Signals',price:'Free',period:'',blurb:'Daily signals with full trade plans.',features:['3-5 signals daily','Entry, stop & target on every call','Private Instagram & app alerts','Weekly live market review','Gold, indices & major pairs'],cta:'Join VIP',href:'/contact',featured:true},
-    {name:'Mentorship',price:'$20',blurb:'1:1 coaching to consistency.',features:['Everything in VIP','2× monthly 1:1 calls','Personal trade-plan reviews','Direct access to Ghasif','Custom risk framework'],highlights:['Forex Trading Mentorship','Complete Masterclass Course','Premium Trading Signals'],cta:'Apply now',href:'/contact',variant:'outlineGold'},
+    {name:'VIP Signals',price:'Free',period:'',blurb:'Daily signals with full trade plans.',features:['3-5 signals daily','Entry, stop & target on every call','Private Instagram & app alerts','Weekly live market review','Gold, indices & major pairs'],cta:'Join VIP Community',href:(window.FWG_SOCIAL||{}).whatsappCommunity,featured:true},
+    {name:'Mentorship',price:'$20',blurb:'1:1 coaching to consistency.',features:['Everything in VIP','2× monthly 1:1 calls','Personal trade-plan reviews','Direct access to Ghasif','Custom risk framework'],highlights:['Forex Trading Mentorship','Complete Masterclass Course','Premium Trading Signals'],cta:'Enroll Now',href:(window.FWG_SOCIAL||{}).whatsappMentorship,variant:'outlineGold'},
   ];
   return <Section id="pricing"><Container>
     <Head align="center" kicker="Plans" title="Simple, honest pricing"
@@ -103,7 +103,7 @@ function Pricing() {
               </ul>
             </div>
           )}
-          <KitButton as="a" href={p.href||'/contact'} variant={p.featured?'primary':(p.variant||'secondary')} fullWidth>{p.cta}</KitButton>
+          <KitButton as="a" href={p.href||'/contact'} target={p.href&&p.href.startsWith('http')?'_blank':undefined} rel={p.href&&p.href.startsWith('http')?'noopener noreferrer':undefined} variant={p.featured?'primary':(p.variant||'secondary')} fullWidth>{p.cta}</KitButton>
         </div>
       ))}
     </div>
