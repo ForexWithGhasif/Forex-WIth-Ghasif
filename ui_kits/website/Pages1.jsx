@@ -18,11 +18,11 @@ function ServicesPreview() {
   return <Section><Container>
     <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-end',gap:'20px',marginBottom:'var(--space-7)',flexWrap:'wrap'}}>
       <Head kicker="What we do" title="Everything you need to trade with an edge" />
-      <KitButton as="a" href="services.html" variant="outlineGold" iconRight={<Icon name="arrow-right" size={16}/>}>View all services</KitButton>
+      <KitButton as="a" href="/services" variant="outlineGold" iconRight={<Icon name="arrow-right" size={16}/>}>View all services</KitButton>
     </div>
     <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:'18px'}} className="fwg-grid-3">
       {s.map(([ic,t,d])=>(
-        <a key={t} href="services.html" style={{display:'block'}}>
+        <a key={t} href="/services" style={{display:'block'}}>
           <KitCard interactive>
             <div style={{width:'48px',height:'48px',borderRadius:'var(--radius-md)',background:'var(--accent-soft-bg)',border:'1px solid var(--border-gold)',display:'inline-flex',alignItems:'center',justifyContent:'center',marginBottom:'16px'}}>
               <Icon name={ic} size={22} color="var(--text-gold)"/>
@@ -48,7 +48,7 @@ function IntroBand() {
         <p style={{fontSize:'var(--text-md)',lineHeight:1.7,color:'var(--text-secondary)',margin:'0 0 22px',maxWidth:'52ch'}}>
           Forex With Ghasif is an education-led trading brand built on transparency and discipline. We publish our results, teach the reasoning behind every trade, and measure success by how consistent, and independent, our members become.
         </p>
-        <KitButton as="a" href="about.html" variant="secondary" iconRight={<Icon name="arrow-right" size={16}/>}>Our story &amp; philosophy</KitButton>
+        <KitButton as="a" href="/about" variant="secondary" iconRight={<Icon name="arrow-right" size={16}/>}>Our story &amp; philosophy</KitButton>
       </div>
       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'14px'}}>
         {[['78.4%','Avg win rate'],['15+','Active members'],['1+ year','Trading the markets'],['1:3.2','Avg reward-to-risk']].map(([v,l])=>(
@@ -75,7 +75,7 @@ function HomePage() {
 /* ============================ ABOUT ============================ */
 function FounderPhoto({ratio='4/5'}) {
   return <div style={{position:'relative',aspectRatio:ratio,borderRadius:'var(--radius-2xl)',overflow:'hidden',border:'1px solid var(--border-gold)',boxShadow:'var(--glow-gold-sm), var(--shadow-lg)'}}>
-    <img src="../../assets/founder.png" alt="Ghasif, Founder of Forex With Ghasif" style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',objectPosition:'top center'}}/>
+    <img src="/assets/founder.png" alt="Ghasif, Founder of Forex With Ghasif" style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',objectPosition:'top center'}}/>
     <div style={{position:'absolute',inset:0,background:'linear-gradient(180deg, transparent 55%, rgba(4,5,8,0.82))'}}/>
     <div style={{position:'absolute',top:'18px',left:'18px'}}><KitBadge tone="gold" dot>Founder</KitBadge></div>
     <div style={{position:'absolute',bottom:0,left:0,right:0,padding:'24px'}}>
@@ -149,8 +149,8 @@ function AboutPage() {
               He mentors every member personally at the highest tier, reviews trade plans, and leads the weekly live sessions where the analysis becomes real decisions in real time.
             </p>
             <div style={{display:'flex',gap:'12px',flexWrap:'wrap'}}>
-              <KitButton as="a" href="contact.html" variant="primary" iconRight={<Icon name="arrow-up-right" size={16}/>}>Work with Ghasif</KitButton>
-              <KitButton as="a" href="performance.html" variant="secondary">See the results</KitButton>
+              <KitButton as="a" href="/contact" variant="primary" iconRight={<Icon name="arrow-up-right" size={16}/>}>Work with Ghasif</KitButton>
+              <KitButton as="a" href="/performance" variant="secondary">See the results</KitButton>
             </div>
           </div>
         </div>
@@ -179,7 +179,7 @@ function ServiceRow({ icon, name, blurb, points, badge, href, reverse, img }) {
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'10px',marginBottom:'22px'}}>
           {points.map(p=><FeatureCheck key={p}>{p}</FeatureCheck>)}
         </div>
-        <KitButton as="a" href={href||'pricing.html'} variant="outlineGold" iconRight={<Icon name="arrow-right" size={16}/>}>Learn more</KitButton>
+        <KitButton as="a" href={href||'/pricing'} variant="outlineGold" iconRight={<Icon name="arrow-right" size={16}/>}>Learn more</KitButton>
       </div>
       <div style={{order:reverse?1:2,minHeight:'260px',position:'relative',overflow:'hidden',borderLeft:reverse?'none':'1px solid var(--border-subtle)',borderRight:reverse?'1px solid var(--border-subtle)':'none'}}>
         <LazyImg src={img} alt={name} style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover'}}/>
@@ -191,15 +191,15 @@ function ServiceRow({ icon, name, blurb, points, badge, href, reverse, img }) {
 
 function ServicesPage() {
   const services=[
-    {icon:'bell-ring',name:'VIP Forex Signals',badge:'Most popular',img:'../../assets/img/service-signals.jpg',blurb:'Institutional-grade trade ideas delivered in real time, each with a full plan and the reasoning behind it, so every signal also teaches.',
+    {icon:'bell-ring',name:'VIP Forex Signals',badge:'Most popular',img:'/assets/img/service-signals.jpg',blurb:'Institutional-grade trade ideas delivered in real time, each with a full plan and the reasoning behind it, so every signal also teaches.',
       points:['3-5 signals daily','Entry, stop & target','Real-time app & Instagram alerts','Gold, indices & major pairs']},
-    {icon:'graduation-cap',name:'Trading Mentorship',img:'../../assets/img/service-mentorship.jpg',blurb:'Structured 1:1 and group coaching that takes you from the fundamentals to a repeatable, independent trading process.',
+    {icon:'graduation-cap',name:'Trading Mentorship',img:'/assets/img/service-mentorship.jpg',blurb:'Structured 1:1 and group coaching that takes you from the fundamentals to a repeatable, independent trading process.',
       points:['Personal trade-plan reviews','2× monthly 1:1 calls','Weekly live sessions','Direct access to Ghasif']},
-    {icon:'line-chart',name:'Market Analysis',img:'../../assets/img/service-analysis.jpg',blurb:'Daily briefings, economic-calendar reads, and weekly deep dives that give you the context behind every move.',
+    {icon:'line-chart',name:'Market Analysis',img:'/assets/img/service-analysis.jpg',blurb:'Daily briefings, economic-calendar reads, and weekly deep dives that give you the context behind every move.',
       points:['Pre-session outlooks','Key levels & bias','Weekly structure breakdowns','Trade-along commentary']},
-    {icon:'shield-check',name:'Risk Management Training',img:'../../assets/img/service-risk.jpg',blurb:'The discipline that actually separates traders who last from those who blow up: position sizing, drawdown control, and psychology.',
+    {icon:'shield-check',name:'Risk Management Training',img:'/assets/img/service-risk.jpg',blurb:'The discipline that actually separates traders who last from those who blow up: position sizing, drawdown control, and psychology.',
       points:['Position-sizing frameworks','Drawdown control','Trading psychology','Personal risk plan']},
-    {icon:'users',name:'Community Support',img:'../../assets/img/service-community.jpg',blurb:'A private, moderated community of serious traders: accountability, shared setups, and answers when you need them.',
+    {icon:'users',name:'Community Support',img:'/assets/img/service-community.jpg',blurb:'A private, moderated community of serious traders: accountability, shared setups, and answers when you need them.',
       points:['Private member community','Accountability & reviews','Setup sharing','Responsive support']},
   ];
   return <React.Fragment>

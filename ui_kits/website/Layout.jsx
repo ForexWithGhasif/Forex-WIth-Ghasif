@@ -17,8 +17,8 @@ function Head({kicker,title,lead,align='left',as='h2'}) {
 }
 
 const NAV = [
-  ['Home','index.html'],['About','about.html'],['Services','services.html'],
-  ['Performance','performance.html'],['Pricing','pricing.html'],['Blog','blog.html'],['Contact','contact.html'],
+  ['Home','/'],['About','/about'],['Services','/services'],
+  ['Performance','/performance'],['Pricing','/pricing'],['Blog','/blog'],['Contact','/contact'],
 ];
 
 function Nav({ active, theme, onToggleTheme }) {
@@ -36,8 +36,8 @@ function Nav({ active, theme, onToggleTheme }) {
       borderBottom:`1px solid ${scrolled||open?'var(--border-subtle)':'transparent'}`,
       transition:'background var(--dur-base) var(--ease-out), border-color var(--dur-base) var(--ease-out)'}}>
       <nav style={{maxWidth:'var(--container-xl)',margin:'0 auto',display:'flex',alignItems:'center',justifyContent:'space-between',gap:'20px'}}>
-        <a href="index.html" aria-label="Forex With Ghasif home" style={{display:'flex',alignItems:'center',gap:'12px',flexShrink:0}}>
-          <img src="../../assets/fwg-logo.png" alt="Forex With Ghasif" style={{height:'40px',width:'auto'}}/>
+        <a href="/" aria-label="Forex With Ghasif home" style={{display:'flex',alignItems:'center',gap:'12px',flexShrink:0}}>
+          <img src="/assets/fwg-logo.png" alt="Forex With Ghasif" style={{height:'40px',width:'auto'}}/>
         </a>
         <div className="fwg-navlinks" style={{display:'flex',alignItems:'center',gap:'2px'}}>
           {NAV.map(([label,href])=>{
@@ -60,7 +60,7 @@ function Nav({ active, theme, onToggleTheme }) {
             onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border-default)';e.currentTarget.style.color='var(--text-secondary)';}}>
             <Icon name={theme==='dark'?'sun':'moon'} size={18}/>
           </button>
-          <span className="fwg-hide-mobile"><KitButton as="a" href="pricing.html" variant="primary" size="sm" iconRight={<Icon name="arrow-up-right" size={16}/>}>Join VIP</KitButton></span>
+          <span className="fwg-hide-mobile"><KitButton as="a" href="/pricing" variant="primary" size="sm" iconRight={<Icon name="arrow-up-right" size={16}/>}>Join VIP</KitButton></span>
           <button className="fwg-menu-btn" onClick={()=>setOpen(o=>!o)} aria-label="Menu" aria-expanded={open}
             style={{display:'none',width:'40px',height:'40px',alignItems:'center',justifyContent:'center',borderRadius:'var(--radius-md)',
               background:'var(--surface-card)',border:'1px solid var(--border-default)',color:'var(--text-primary)',cursor:'pointer'}}>
@@ -75,7 +75,7 @@ function Nav({ active, theme, onToggleTheme }) {
             return <a key={label} href={href} style={{padding:'13px 14px',borderRadius:'var(--radius-md)',fontFamily:'var(--font-body)',fontSize:'var(--text-md)',fontWeight:600,
               color:on?'var(--text-gold)':'var(--text-secondary)',background:on?'var(--accent-soft-bg)':'transparent'}}>{label}</a>;
           })}
-          <div style={{padding:'10px 4px 6px'}}><KitButton as="a" href="pricing.html" variant="primary" fullWidth>Join VIP Signals</KitButton></div>
+          <div style={{padding:'10px 4px 6px'}}><KitButton as="a" href="/pricing" variant="primary" fullWidth>Join VIP Signals</KitButton></div>
         </div>
       )}
     </header>

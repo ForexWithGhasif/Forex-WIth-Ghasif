@@ -127,7 +127,7 @@ function PricingPage() {
 const ONE_PERCENT_ARTICLE = {
   category:'Risk management', read:'9 min read', date:'June 2026', author:'Ghasif',
   title:'The 1% Rule That Keeps You in the Game',
-  img:'../../assets/img/blog-1percent.jpg',
+  img:'/assets/img/blog-1percent.jpg',
   lead:'Most traders obsess over entries. The ones who last obsess over how much they can lose. Here is the single rule that has kept disciplined traders in the market long enough to actually win.',
   body:[
     ['h','What the 1% rule actually means'],
@@ -149,7 +149,7 @@ const BLOG_ARTICLES = [
   {
     category:'Psychology', read:'8 min', date:'June 2026', author:'Ghasif',
     title:'Trading the Plan, Not the Feeling',
-    img:'../../assets/img/blog-plan.jpg',
+    img:'/assets/img/blog-plan.jpg',
     excerpt:'A framework for removing emotion when the market gets loud.',
     lead:'A trading plan is only useful if you follow it when it is hardest to follow. Here is how to build a plan that survives contact with a live, moving market.',
     body:[
@@ -166,7 +166,7 @@ const BLOG_ARTICLES = [
   {
     category:'Market structure', read:'7 min', date:'June 2026', author:'Ghasif',
     title:'Reading Liquidity Like the Banks Do',
-    img:'../../assets/img/blog-liquidity.jpg',
+    img:'/assets/img/blog-liquidity.jpg',
     excerpt:'Spot where smart money is positioned, and why retail enters wrong.',
     lead:'Price does not move randomly between support and resistance. It moves toward the places where the most orders are sitting. Here is how to start reading the market that way.',
     body:[
@@ -183,7 +183,7 @@ const BLOG_ARTICLES = [
   {
     category:'Strategy', read:'6 min', date:'June 2026', author:'Ghasif',
     title:'Building a Repeatable Trading Routine',
-    img:'../../assets/img/blog-routine.jpg',
+    img:'/assets/img/blog-routine.jpg',
     excerpt:'The daily process that turns random entries into consistent results.',
     lead:'Consistency is not a personality trait some traders are born with. It is the output of a routine that removes randomness from the day. Here is the structure we teach.',
     body:[
@@ -199,7 +199,7 @@ const BLOG_ARTICLES = [
   {
     category:'Risk management', read:'5 min', date:'June 2026', author:'Ghasif',
     title:'Drawdown: The Number That Matters Most',
-    img:'../../assets/img/blog-drawdown.jpg',
+    img:'/assets/img/blog-drawdown.jpg',
     excerpt:'How to think about losing streaks before they happen to you.',
     lead:'Most traders track win rate. The number that actually determines whether you survive long enough to compound is maximum drawdown. Here is how to think about it before you are in one.',
     body:[
@@ -215,7 +215,7 @@ const BLOG_ARTICLES = [
   {
     category:'News', read:'6 min', date:'June 2026', author:'Ghasif',
     title:'Trading High-Impact News Safely',
-    img:'../../assets/img/blog-news.jpg',
+    img:'/assets/img/blog-news.jpg',
     excerpt:'What economic releases actually mean for your open risk.',
     lead:'High-impact news events can move a pair further in one minute than it normally moves in a day. Here is how to manage that risk without simply avoiding the calendar altogether.',
     body:[
@@ -231,7 +231,7 @@ const BLOG_ARTICLES = [
   {
     category:'Psychology', read:'7 min', date:'June 2026', author:'Ghasif',
     title:'Why Most Traders Quit Too Early',
-    img:'../../assets/img/blog-consistency.jpg',
+    img:'/assets/img/blog-consistency.jpg',
     excerpt:'The consistency curve, and how to stay on it long enough to win.',
     lead:'Most traders do not fail because their edge does not work. They fail because they abandon a sound process before it has had enough trades to express itself. Here is the curve that explains why.',
     body:[
@@ -300,7 +300,7 @@ function ArticleModal({ article, onClose }) {
           {article.body.map(block)}
           <div style={{marginTop:'34px',paddingTop:'24px',borderTop:'1px solid var(--border-subtle)',display:'flex',flexWrap:'wrap',gap:'12px',alignItems:'center',justifyContent:'space-between'}}>
             <span style={{fontSize:'var(--text-sm)',color:'var(--text-tertiary)'}}>Want signals with this discipline built in?</span>
-            <KitButton as="a" href="pricing.html" variant="primary" iconRight={<Icon name="arrow-up-right" size={16}/>}>Join VIP Signals</KitButton>
+            <KitButton as="a" href="/pricing" variant="primary" iconRight={<Icon name="arrow-up-right" size={16}/>}>Join VIP Signals</KitButton>
           </div>
         </div>
       </article>
@@ -310,7 +310,7 @@ function ArticleModal({ article, onClose }) {
 
 function BlogIndex() {
   const cats=['All','Risk management','Psychology','Market structure','Strategy','News'];
-  const featured=['Risk management','The 1% rule that keeps you in the game','Why position sizing, not entries, is the real difference between traders who last and those who blow up. A practical walkthrough of the math and the mindset.','9 min','../../assets/img/blog-1percent.jpg'];
+  const featured=['Risk management','The 1% rule that keeps you in the game','Why position sizing, not entries, is the real difference between traders who last and those who blow up. A practical walkthrough of the math and the mindset.','9 min','/assets/img/blog-1percent.jpg'];
   const posts=BLOG_ARTICLES;
   const [cat,setCat]=React.useState('All');
   const [openArticle,setOpenArticle]=React.useState(null);

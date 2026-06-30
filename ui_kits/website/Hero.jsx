@@ -24,8 +24,8 @@ function Hero() {
             Institutional-grade signals, live market breakdowns, and 1:1 mentorship, built to make you a consistent trader, not a gambler.
           </p>
           <div style={{display:'flex',gap:'12px',flexWrap:'wrap',marginTop:'4px'}}>
-            <KitButton as="a" href="pricing.html" variant="primary" size="lg" iconRight={<Icon name="arrow-up-right" size={18}/>}>Join VIP Signals</KitButton>
-            <KitButton as="a" href="performance.html" variant="secondary" size="lg" iconLeft={<Icon name="line-chart" size={18}/>}>See the track record</KitButton>
+            <KitButton as="a" href="/pricing" variant="primary" size="lg" iconRight={<Icon name="arrow-up-right" size={18}/>}>Join VIP Signals</KitButton>
+            <KitButton as="a" href="/performance" variant="secondary" size="lg" iconLeft={<Icon name="line-chart" size={18}/>}>See the track record</KitButton>
           </div>
           <div style={{display:'flex',gap:'var(--space-7)',marginTop:'var(--space-4)',flexWrap:'wrap'}}>
             <KitStat value="78.4%" label="Avg win rate" />

@@ -63,8 +63,8 @@ function Testimonials() {
 
 function Pricing() {
   const plans=[
-    {name:'VIP Signals',price:'Free',period:'',blurb:'Daily signals with full trade plans.',features:['3-5 signals daily','Entry, stop & target on every call','Private Instagram & app alerts','Weekly live market review','Gold, indices & major pairs'],cta:'Join VIP',href:'contact.html',featured:true},
-    {name:'Mentorship',price:'$20',blurb:'1:1 coaching to consistency.',features:['Everything in VIP','2× monthly 1:1 calls','Personal trade-plan reviews','Direct access to Ghasif','Custom risk framework'],highlights:['Forex Trading Mentorship','Complete Masterclass Course','Premium Trading Signals'],cta:'Apply now',href:'contact.html',variant:'outlineGold'},
+    {name:'VIP Signals',price:'Free',period:'',blurb:'Daily signals with full trade plans.',features:['3-5 signals daily','Entry, stop & target on every call','Private Instagram & app alerts','Weekly live market review','Gold, indices & major pairs'],cta:'Join VIP',href:'/contact',featured:true},
+    {name:'Mentorship',price:'$20',blurb:'1:1 coaching to consistency.',features:['Everything in VIP','2× monthly 1:1 calls','Personal trade-plan reviews','Direct access to Ghasif','Custom risk framework'],highlights:['Forex Trading Mentorship','Complete Masterclass Course','Premium Trading Signals'],cta:'Apply now',href:'/contact',variant:'outlineGold'},
   ];
   return <Section id="pricing"><Container>
     <Head align="center" kicker="Plans" title="Simple, honest pricing"
@@ -103,7 +103,7 @@ function Pricing() {
               </ul>
             </div>
           )}
-          <KitButton as="a" href={p.href||'contact.html'} variant={p.featured?'primary':(p.variant||'secondary')} fullWidth>{p.cta}</KitButton>
+          <KitButton as="a" href={p.href||'/contact'} variant={p.featured?'primary':(p.variant||'secondary')} fullWidth>{p.cta}</KitButton>
         </div>
       ))}
     </div>
@@ -154,7 +154,7 @@ function Blog() {
   return <Section id="blog" style={{background:'var(--bg-elevated)'}}><Container>
     <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-end',gap:'20px',marginBottom:'var(--space-7)',flexWrap:'wrap'}}>
       <Head kicker="From the blog" title="Insights to sharpen your edge" />
-      <KitButton as="a" href="blog.html" variant="ghost" iconRight={<Icon name="arrow-right" size={16}/>}>All articles</KitButton>
+      <KitButton as="a" href="/blog" variant="ghost" iconRight={<Icon name="arrow-right" size={16}/>}>All articles</KitButton>
     </div>
     <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:'18px'}} className="fwg-grid-3">
       {posts.map(([cat,t,d,read])=>(
@@ -191,8 +191,8 @@ function CTASection() {
           Join 15+ traders building real, repeatable consistency with Forex With Ghasif. Start free, upgrade when you’re ready.
         </p>
         <div style={{display:'flex',gap:'12px',flexWrap:'wrap',justifyContent:'center',marginTop:'4px'}}>
-          <KitButton as="a" href="pricing.html" variant="primary" size="lg" iconRight={<Icon name="arrow-up-right" size={18}/>}>Join VIP Signals</KitButton>
-          <KitButton as="a" href="contact.html" variant="secondary" size="lg" iconLeft={<Icon name="calendar" size={18}/>}>Book a mentorship call</KitButton>
+          <KitButton as="a" href="/pricing" variant="primary" size="lg" iconRight={<Icon name="arrow-up-right" size={18}/>}>Join VIP Signals</KitButton>
+          <KitButton as="a" href="/contact" variant="secondary" size="lg" iconLeft={<Icon name="calendar" size={18}/>}>Book a mentorship call</KitButton>
         </div>
       </div>
     </div>
@@ -237,15 +237,15 @@ function Footer() {
   };
 
   const cols=[
-    ['Trading',[['VIP Signals','services.html'],['Market Analysis','services.html'],['Performance','performance.html'],['Trading Blog','blog.html']]],
-    ['Learn',[['Mentorship','services.html'],['Risk Management','services.html'],['Community','services.html'],['Free Resources','blog.html']]],
-    ['Company',[['About Ghasif','about.html'],['Our Philosophy','about.html'],['Pricing','pricing.html'],['Contact','contact.html']]],
+    ['Trading',[['VIP Signals','/services'],['Market Analysis','/services'],['Performance','/performance'],['Trading Blog','/blog']]],
+    ['Learn',[['Mentorship','/services'],['Risk Management','/services'],['Community','/services'],['Free Resources','/blog']]],
+    ['Company',[['About Ghasif','/about'],['Our Philosophy','/about'],['Pricing','/pricing'],['Contact','/contact']]],
   ];
   return <footer style={{borderTop:'1px solid var(--border-subtle)',background:'var(--bg-deep)',paddingTop:'var(--space-9)'}}>
     <Container>
       <div style={{display:'grid',gridTemplateColumns:'1.4fr 1fr 1fr 1fr',gap:'var(--space-7)',paddingBottom:'var(--space-8)'}} className="fwg-foot-grid">
         <div>
-          <img src="../../assets/fwg-logo.png" alt="Forex With Ghasif" style={{height:'52px',width:'auto',marginBottom:'18px'}}/>
+          <img src="/assets/fwg-logo.png" alt="Forex With Ghasif" style={{height:'52px',width:'auto',marginBottom:'18px'}}/>
           <p style={{fontSize:'var(--text-sm)',lineHeight:1.65,color:'var(--text-tertiary)',margin:'0 0 18px',maxWidth:'34ch'}}>
             Premium forex signals, mentorship, and market education, built on transparency, discipline, and long-term consistency.
           </p>

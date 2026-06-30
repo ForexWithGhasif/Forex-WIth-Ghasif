@@ -99,7 +99,7 @@ function Signals() {
             <span style={{fontSize:'var(--text-sm)',color:'var(--text-secondary)',lineHeight:1.5}}>{t}</span>
           </div>))}
         </div>
-        <KitButton as="a" href="pricing.html" variant="primary" size="lg" iconRight={<Icon name="arrow-up-right" size={18}/>}>Join VIP Signals</KitButton>
+        <KitButton as="a" href="/pricing" variant="primary" size="lg" iconRight={<Icon name="arrow-up-right" size={18}/>}>Join VIP Signals</KitButton>
       </div>
       <KitCard featured padding="0" style={{overflow:'hidden'}}>
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'16px 18px',borderBottom:'1px solid var(--border-subtle)'}}>
@@ -139,7 +139,7 @@ function Mentorship() {
           </div>
           <h3 style={{fontFamily:'var(--font-display)',fontSize:'var(--text-lg)',fontWeight:600,margin:'0 0 8px'}}>{t}</h3>
           <p style={{fontSize:'var(--text-sm)',lineHeight:1.6,color:'var(--text-secondary)',margin:'0 0 16px'}}>{d}</p>
-          <a href="pricing.html" style={{display:'inline-flex',alignItems:'center',gap:'6px',color:'var(--text-gold)',fontSize:'var(--text-sm)',fontWeight:700}}>Learn more <Icon name="arrow-right" size={15}/></a>
+          <a href="/pricing" style={{display:'inline-flex',alignItems:'center',gap:'6px',color:'var(--text-gold)',fontSize:'var(--text-sm)',fontWeight:700}}>Learn more <Icon name="arrow-right" size={15}/></a>
         </KitCard>
       ))}
     </div>
