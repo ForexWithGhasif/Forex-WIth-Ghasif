@@ -1,26 +1,23 @@
 /* ==========================================================================
    Forex With Ghasif — premium live shader background
    ==========================================================================
-   A fixed, full-viewport WebGL backdrop (Three.js + GLSL): a slow-flowing
-   liquid-metal surface. Rather than stacking many glow/aurora/particle
-   layers, this is one coherent idea executed well: a procedural height
-   field is lit with real diffuse + specular shading (the same Blinn-Phong
-   technique used for any glossy 3D material), so the gold/emerald "metal"
-   genuinely catches and sweeps light as it flows — closer to Apple's
-   liquid-chrome marketing pages than a generic glowing-noise background.
+   A fixed, full-viewport WebGL backdrop (Three.js + GLSL): a slow, organic
+   fbm-noise field tinted with the site's gold/emerald brand colors, with a
+   soft cursor-driven ripple/distortion. It sits behind every page
+   (z-index: -1, pointer-events: none) and never intercepts clicks or covers
+   content — content sits on top via the design system's glass/card surfaces.
 
-   It sits behind every page (z-index: -1, pointer-events: none) and never
-   intercepts clicks or covers content.
+   Why vanilla Three.js + GLSL (not React Three Fiber): this project ships
+   React via an in-browser Babel <script type="text/babel"> setup with no
+   bundler/npm build step. React Three Fiber is an npm-only package that
+   requires a bundler, so adding it here would mean introducing a whole new
+   build pipeline just for a background effect — a disproportionate,
+   "unnecessary dependency" for what this is. Three.js is already loaded
+   once via CDN and reused as-is.
 
-   Why vanilla Three.js + GLSL (not React Three Fiber, not TypeScript): this
-   project ships React via an in-browser Babel <script type="text/babel">
-   setup with no bundler/build step. Either would mean introducing a whole
-   new build pipeline just for a background effect — disproportionate here.
-   Three.js is already loaded once via CDN and reused as-is.
-
-   Resilience: gracefully falls back to a static on-brand CSS gradient when
-   WebGL is unavailable, when the user has requested reduced motion, or if
-   the GPU context is lost mid-session.
+   Resilience: gracefully no-ops (falls back to a static on-brand CSS
+   gradient) when WebGL is unavailable, when the user has requested reduced
+   motion, or if the GPU context is lost mid-session.
 
    ---- Customization -------------------------------------------------------
    Everything tunable lives in CONFIG below. Colors are read live from this
@@ -36,42 +33,34 @@
      change for a simple re-skin (speed, strength, performance budget).
      --------------------------------------------------------------------- */
   var CONFIG = {
-    // Idle flow speed (time multiplier). Lower = slower, calmer drift.
+    // Idle animation speed (time multiplier). Lower = slower, calmer drift.
     speed: 0.05,
-    // How strongly the cursor ripples the liquid surface.
+    // How strongly the cursor bends/ripples the noise field (0–1-ish range).
     distortionStrength: 0.10,
     // Soft gold glow radius (px) that trails the pointer on fine-pointer
     // devices only (desktop mouse) — skipped on touch, see boot().
-    cursorGlowSize: 420,
-    // Max shift of the simulated light direction from mouse position
-    // (desktop) or device tilt (mobile) — kept small ("gentle", never
-    // a dramatic spotlight swing).
-    lightOffsetStrength: 0.16,
-    // Quality tiers, highest first. `octaves` controls fbm detail (GLSL
-    // loop length, recompiled per tier) and `dprCap` caps devicePixelRatio.
+    cursorGlowSize: 460,
+    // Quality tiers, highest first. `octaves` controls fbm detail (GLSL loop
+    // length, recompiled per tier) and `dprCap` caps devicePixelRatio.
+    // Lower tiers cost meaningfully less GPU time.
     qualityTiers: [
-      { name: 'high', octaves: 3, dprCap: 1.5 },
-      { name: 'medium', octaves: 2, dprCap: 1.0 },
-      { name: 'low', octaves: 1, dprCap: 0.75 }
+      { name: 'high', octaves: 4, dprCap: 1.5 },
+      { name: 'medium', octaves: 3, dprCap: 1.0 },
+      { name: 'low', octaves: 2, dprCap: 0.75 }
     ],
     // Below this average FPS, sustained for `fpsSampleWindow` frames, step
-    // down one quality tier. Never steps back up (avoids visible flicker).
+    // down one quality tier. Never steps back up (avoids visible flicker
+    // between tiers under fluctuating load).
     fpsDowngradeThreshold: 45,
     fpsSampleWindow: 90,
     // CSS custom properties read for brand color (see tokens/colors.css).
-    // `highlight` is the design system's "specular champagne" token —
-    // literally authored for exactly this kind of metallic highlight.
+    // Values used as fallbacks only if a property can't be resolved.
     colorVars: {
       gold: { name: '--gold-500', fallback: '#C69A2C' },
       emerald: { name: '--emerald-500', fallback: '#13B978' },
-      highlight: { name: '--gold-highlight', fallback: '#F8E9B4' },
       baseDark: { name: '--ink-950', fallback: '#06070A' },
       baseLight: { name: '--ivory-50', fallback: '#FCFAF4' }
-    },
-    // Large-but-safe wrap for uTime so float32 precision never degrades on
-    // very long-running tabs. The flow is purely continuous trig/noise
-    // (not a sprite loop), so wrapping the clock has no visible seam.
-    timeWrap: 6283.184 // 1000 * 2π
+    }
   };
 
   /* ---------------------------------------------------------------------
@@ -118,9 +107,9 @@
     var reduceMotionQuery = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)');
     var fineHoverQuery = window.matchMedia && window.matchMedia('(hover: hover) and (pointer: fine)');
 
-    // Fully disable the animated shader for users who asked for reduced
-    // motion — no canvas, no rAF loop, no mouse-driven motion. They get
-    // the same calm static gradient as the no-WebGL fallback.
+    // Requirement 8: fully disable the animated shader for users who asked
+    // for reduced motion — no canvas, no rAF loop, no mouse-driven motion.
+    // They get the same calm static gradient as the no-WebGL fallback.
     if (reduceMotionQuery && reduceMotionQuery.matches) {
       mountStaticFallback();
       return;
@@ -153,7 +142,6 @@
     // a token change is automatically reflected here with no code edits.
     var goldColor = readBrandColor(CONFIG.colorVars.gold);
     var emeraldColor = readBrandColor(CONFIG.colorVars.emerald);
-    var highlightColor = readBrandColor(CONFIG.colorVars.highlight);
     var baseDark = readBrandColor(CONFIG.colorVars.baseDark);
     var baseLight = readBrandColor(CONFIG.colorVars.baseLight);
 
@@ -164,10 +152,8 @@
       uMouseV: { value: 0 },
       uTheme: { value: themeVal() },
       uDistort: { value: CONFIG.distortionStrength },
-      uLightOffset: { value: new THREE.Vector2(0, 0) },
       uGold: { value: new THREE.Vector3(goldColor[0], goldColor[1], goldColor[2]) },
       uEmerald: { value: new THREE.Vector3(emeraldColor[0], emeraldColor[1], emeraldColor[2]) },
-      uHighlight: { value: new THREE.Vector3(highlightColor[0], highlightColor[1], highlightColor[2]) },
       uBaseDark: { value: new THREE.Vector3(baseDark[0], baseDark[1], baseDark[2]) },
       uBaseLight: { value: new THREE.Vector3(baseLight[0], baseLight[1], baseLight[2]) }
     };
@@ -176,62 +162,46 @@
 
     // fbm octave count is baked into the GLSL loop bound at compile time
     // (cheap to recompile; only happens on a rare quality-tier downgrade,
-    // never per-frame) — this is what lets `low` quality cost less GPU
-    // time than `high` on the same screen.
+    // never per-frame) — this is what lets `low` quality cost less GPU time
+    // than `high` on the same screen.
     function buildFragmentShader(octaves) {
       return [
         'precision highp float;',
         'varying vec2 vUv;',
-        'uniform float uTime; uniform vec2 uRes; uniform vec2 uMouse; uniform float uMouseV; uniform float uTheme; uniform float uDistort; uniform vec2 uLightOffset;',
-        'uniform vec3 uGold; uniform vec3 uEmerald; uniform vec3 uHighlight; uniform vec3 uBaseDark; uniform vec3 uBaseLight;',
-        // Hash + value-noise + fractal Brownian motion: a large, smooth,
-        // slow-rolling height field — deliberately fewer/larger waves
-        // (not fine grainy detail) so the surface reads as one continuous
-        // liquid sheet rather than busy texture.
+        'uniform float uTime; uniform vec2 uRes; uniform vec2 uMouse; uniform float uMouseV; uniform float uTheme; uniform float uDistort;',
+        'uniform vec3 uGold; uniform vec3 uEmerald; uniform vec3 uBaseDark; uniform vec3 uBaseLight;',
+        // Hash + value-noise + fractal Brownian motion: the organic,
+        // flowing "liquid" texture the whole effect is built on.
         'float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7)))*43758.5453); }',
         'float noise(vec2 p){ vec2 i=floor(p), f=fract(p); float a=hash(i),b=hash(i+vec2(1.,0.)),c=hash(i+vec2(0.,1.)),d=hash(i+vec2(1.,1.)); vec2 u=f*f*(3.-2.*f); return mix(a,b,u.x)+(c-a)*u.y*(1.-u.x)+(d-b)*u.x*u.y; }',
-        'float fbm(vec2 p){ float v=0.,a=0.5; for(int i=0;i<' + octaves + ';i++){ v+=a*noise(p); p*=2.0; a*=0.5; } return v; }',
-        // The liquid surface height at a point, including the cursor's
-        // ripple — a real wave disturbance added to the height field
-        // itself, so the lighting below responds to it physically rather
-        // than as a separate glow overlay.
-        'float heightAt(vec2 p, float t){',
-        '  vec2 flow = p*0.8 + vec2(t*0.6, t*0.35);',
-        '  float hgt = fbm(flow);',
-        '  vec2 m=(uMouse-0.5)*vec2(uRes.x/uRes.y,1.0);',
-        '  float md = distance(p, m);',
-        '  float ripple = sin(md*14.0 - t*4.0) * smoothstep(0.6,0.0,md) * (0.05 + uMouseV*uDistort);',
-        '  return hgt + ripple;',
-        '}',
+        'float fbm(vec2 p){ float v=0.,a=0.5; for(int i=0;i<' + octaves + ';i++){ v+=a*noise(p); p*=2.02; a*=0.5; } return v; }',
         'void main(){',
         '  vec2 uv=vUv; vec2 asp=vec2(uRes.x/uRes.y,1.0);',
-        '  vec2 p=(uv-0.5)*asp;',
+        '  vec2 p=(uv-0.5)*asp; vec2 m=(uMouse-0.5)*asp;',
+        // Soft cursor ripple: bends sample-space toward/away from the
+        // pointer within a falloff radius — a gentle warp, not a hard
+        // displacement, so it reads as "distortion" rather than a glitch.
+        '  float md=distance(p,m);',
+        '  vec2 dir=normalize(p-m+0.0001);',
+        '  float bend=smoothstep(0.7,0.0,md)*(0.03+uMouseV*uDistort);',
+        '  p-=dir*bend;',
         '  float t=uTime*1.0;',
-        // Surface normal via finite differences on the height field — the
-        // standard trick for shading a 2D noise field as if it were a
-        // glossy 3D surface.
-        '  float eps=0.012;',
-        '  float h0=heightAt(p,t);',
-        '  float hX=heightAt(p+vec2(eps,0.0),t);',
-        '  float hY=heightAt(p+vec2(0.0,eps),t);',
-        '  vec3 normal=normalize(vec3(h0-hX,h0-hY,eps*1.4));',
-        // Light direction gently steered by mouse position (desktop) or
-        // device tilt (mobile) via uLightOffset — like tilting a real
-        // piece of chrome to catch the light differently.
-        '  vec3 lightDir=normalize(vec3(0.35+uLightOffset.x,0.55+uLightOffset.y,0.72));',
-        '  float diffuse=max(dot(normal,lightDir),0.0);',
-        '  vec3 viewDir=vec3(0.0,0.0,1.0);',
-        '  vec3 halfDir=normalize(lightDir+viewDir);',
-        '  float specular=pow(max(dot(normal,halfDir),0.0),55.0);', // tight glossy highlight
-        '  float sheen=pow(max(dot(normal,halfDir),0.0),9.0);',      // softer broad sheen
-        '  vec3 base=mix(uBaseDark,uBaseLight,uTheme);',
-        '  vec3 metal=mix(uGold,uEmerald,0.5+0.5*sin(t*0.15));', // slow gold<->emerald cross-fade
+        '  vec2 q=vec2(fbm(p*1.1+t), fbm(p*1.1-t+5.2));',
+        '  float n=fbm(p*1.25 + q*1.6 + t);',
+        '  vec2 g1=vec2(sin(t*1.3)*0.55, 0.35+cos(t*1.1)*0.3);',
+        '  vec2 g2=vec2(cos(t*0.8)*0.6, -0.2+sin(t*1.5)*0.4);',
+        '  float gold=smoothstep(1.05,0.0,distance(p,g1));',
+        '  float em=smoothstep(1.25,0.0,distance(p,g2));',
+        '  float glow=pow(max(n,0.0),1.5);',
+        '  vec3 base=mix(uBaseDark, uBaseLight, uTheme);',
+        '  float gi=mix(0.090,0.060,uTheme); float ei=mix(0.050,0.030,uTheme);',
         '  vec3 col=base;',
-        '  col+=metal*diffuse*mix(0.16,0.10,uTheme);',
-        '  col+=metal*sheen*mix(0.10,0.06,uTheme);',
-        '  col+=uHighlight*specular*mix(0.85,0.45,uTheme);',
-        '  col*=1.0-0.28*length(uv-0.5);', // soft vignette, premium/glass feel
-        '  col*=mix(0.85,0.95,uTheme);',
+        '  col+=uGold*gold*glow*gi;',
+        '  col+=uEmerald*em*glow*ei;',
+        '  float prox=smoothstep(0.30,0.0,md);',
+        '  col+=uGold*prox*(0.045+uMouseV*uDistort)*mix(1.0,0.6,uTheme);',
+        '  col*=1.0-0.30*length(uv-0.5);', // gentle vignette, premium/glass feel
+        '  col*=mix(0.82,0.94,uTheme);',
         '  gl_FragColor=vec4(col,1.0);',
         '}'
       ].join('\n');
@@ -268,38 +238,19 @@
     window.addEventListener('resize', resize);
     applyTier();
 
-    // ---- eased mouse / touch follow (drives the ripple + light offset) ----
+    // ---- eased mouse / touch follow (drives the shader ripple uniform) ----
     var target = { x: 0.5, y: 0.5 }, cur = { x: 0.5, y: 0.5 }, vel = 0;
     function onMove(cx, cy) { target.x = cx / window.innerWidth; target.y = 1 - cy / window.innerHeight; }
     window.addEventListener('mousemove', function (e) { onMove(e.clientX, e.clientY); }, { passive: true });
-    // Touch support: the ripple responds to a finger drag the same way it
-    // responds to a mouse.
+    // Touch support: the ripple/distortion responds to a finger drag the
+    // same way it responds to a mouse, satisfying requirement 6's touch
+    // support without any device branching in the shader itself.
     window.addEventListener('touchmove', function (e) { if (e.touches[0]) onMove(e.touches[0].clientX, e.touches[0].clientY); }, { passive: true });
-
-    // ---- device tilt (mobile light-direction steering) ----
-    // iOS requires an explicit user gesture before motion data can be
-    // requested, so this is only triggered on the first touch, and only
-    // attached at all if permission is granted (or not required).
-    var tilt = { x: 0, y: 0 };
-    function onOrientation(e) {
-      if (typeof e.gamma === 'number') tilt.x = Math.max(-1, Math.min(1, e.gamma / 45));
-      if (typeof e.beta === 'number') tilt.y = Math.max(-1, Math.min(1, (e.beta - 45) / 45));
-    }
-    function requestMotionIfNeeded() {
-      if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
-        DeviceOrientationEvent.requestPermission().then(function (state) {
-          if (state === 'granted') window.addEventListener('deviceorientation', onOrientation, { passive: true });
-        }).catch(function () {});
-      } else if (typeof DeviceOrientationEvent !== 'undefined') {
-        window.addEventListener('deviceorientation', onOrientation, { passive: true });
-      }
-    }
-    window.addEventListener('touchstart', requestMotionIfNeeded, { once: true, passive: true });
 
     // ---- decorative cursor-glow trail (desktop only) ----
     // Skipped on touch/coarse-pointer devices on purpose: a glow that
     // trails a literal fingertip sits hidden under the finger and adds
-    // nothing — the surface's own ripple (above) already covers touch.
+    // nothing — the shader's own ripple (above) already covers touch.
     var glow = null, glowMounted = false;
     if (fineHoverQuery && fineHoverQuery.matches) {
       glow = document.createElement('div');
@@ -309,7 +260,7 @@
         position: 'fixed', top: '0', left: '0', width: size + 'px', height: size + 'px',
         marginLeft: (-size / 2) + 'px', marginTop: (-size / 2) + 'px', borderRadius: '50%', zIndex: '0',
         pointerEvents: 'none', mixBlendMode: 'screen', opacity: '0',
-        background: 'radial-gradient(circle, rgba(214,175,67,0.14) 0%, rgba(214,175,67,0.05) 32%, rgba(214,175,67,0) 68%)',
+        background: 'radial-gradient(circle, rgba(214,175,67,0.16) 0%, rgba(214,175,67,0.06) 32%, rgba(214,175,67,0) 68%)',
         transition: 'opacity 500ms ease', willChange: 'transform, opacity'
       });
     }
@@ -337,7 +288,7 @@
     new MutationObserver(function () { uniforms.uTheme.value = themeVal(); })
       .observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 
-    // Pause entirely when the tab isn't visible.
+    // Requirement 4: pause entirely when the tab isn't visible.
     var running = true;
     document.addEventListener('visibilitychange', function () {
       running = !document.hidden;
@@ -371,8 +322,6 @@
     // Rolling frame-time sample used purely to decide whether to step down
     // a quality tier; never affects the visuals directly.
     var frameCount = 0, frameTimeSum = 0;
-    // Eased light-direction offset (mouse on desktop, tilt on mobile).
-    var lightOff = { x: 0, y: 0 };
 
     function loop(now) {
       if (!running) return;
@@ -381,9 +330,9 @@
       frameCount++;
       last = now;
 
-      // Adaptive downgrade check: auto-reduce quality on slower devices.
-      // Only ever steps down, and only after a stable sample window, so a
-      // single slow frame can't cause flicker.
+      // Adaptive downgrade check (requirement 4: auto-reduce quality on
+      // slower devices). Only ever steps down, and only after a stable
+      // sample window, so a single slow frame can't cause flicker.
       if (frameCount >= CONFIG.fpsSampleWindow) {
         var avgFps = 1000 / (frameTimeSum / frameCount);
         if (avgFps < CONFIG.fpsDowngradeThreshold && tierIndex < CONFIG.qualityTiers.length - 1) {
@@ -400,15 +349,7 @@
       vel += (Math.min(dv, 3) - vel) * 0.1;
       uniforms.uMouse.value.set(cur.x, cur.y);
       uniforms.uMouseV.value = vel;
-      uniforms.uTime.value = (uniforms.uTime.value + dt * CONFIG.speed) % CONFIG.timeWrap;
-
-      // Gentle light steering: blend desktop mouse offset and mobile tilt
-      // into one small, eased shift of the simulated light direction.
-      var lightTargetX = (cur.x - 0.5) * CONFIG.lightOffsetStrength + tilt.x * (CONFIG.lightOffsetStrength * 0.6);
-      var lightTargetY = (cur.y - 0.5) * CONFIG.lightOffsetStrength + tilt.y * (CONFIG.lightOffsetStrength * 0.6);
-      lightOff.x += (lightTargetX - lightOff.x) * 0.04;
-      lightOff.y += (lightTargetY - lightOff.y) * 0.04;
-      uniforms.uLightOffset.value.set(lightOff.x, lightOff.y);
+      uniforms.uTime.value += dt * CONFIG.speed;
 
       if (glow) {
         gpos.x += (graw.x - gpos.x) * 0.18;
