@@ -31,6 +31,11 @@ body { background: transparent; overflow-x: hidden; }
   .fwg-grid-3 { grid-template-columns: 1fr 1fr !important; }
   .fwg-table { font-size: var(--text-xs) !important; }
   .fwg-feat-fade { display: none !important; }
+  /* Hero content column: once the hero grid stacks to one column, center
+     the badge/headline/copy/buttons/stats as a unit instead of leaving
+     them left-stuck under the now-full-width column. */
+  .fwg-hero-content { align-items: center !important; text-align: center !important; margin: 0 auto !important; }
+  .fwg-hero-content > div { justify-content: center !important; }
 }
 
 /* Wide data tables scroll horizontally inside their card on small screens

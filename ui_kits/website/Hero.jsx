@@ -15,7 +15,7 @@ function Hero() {
       <div style={{position:'absolute',inset:0,background:'var(--hero-glow)',pointerEvents:'none'}}/>
       <div style={{position:'absolute',inset:0,backgroundImage:'linear-gradient(var(--border-subtle) 1px, transparent 1px), linear-gradient(90deg, var(--border-subtle) 1px, transparent 1px)',backgroundSize:'64px 64px',maskImage:'radial-gradient(70% 60% at 50% 30%, #000, transparent 80%)',WebkitMaskImage:'radial-gradient(70% 60% at 50% 30%, #000, transparent 80%)',opacity:0.5,pointerEvents:'none'}}/>
       <div style={{position:'relative',maxWidth:'var(--container-xl)',margin:'0 auto',display:'grid',gridTemplateColumns:'1.05fr 0.95fr',gap:'var(--space-8)',alignItems:'center'}} className="fwg-hero-grid">
-        <div style={{display:'flex',flexDirection:'column',gap:'var(--space-5)',maxWidth:'600px'}}>
+        <div style={{display:'flex',flexDirection:'column',gap:'var(--space-5)',maxWidth:'600px'}} className="fwg-hero-content">
           <KitBadge tone="gold" dot>Premium forex education &amp; signals</KitBadge>
           <h1 style={{fontFamily:'var(--font-display)',fontWeight:800,fontSize:'var(--text-4xl)',lineHeight:1.02,letterSpacing:'var(--ls-tighter)',margin:0}}>
             Trade with <span className="fwg-gold-text">conviction</span>, not luck.
