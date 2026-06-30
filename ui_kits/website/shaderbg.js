@@ -1,23 +1,32 @@
 /* ==========================================================================
    Forex With Ghasif — premium live shader background
    ==========================================================================
-   A fixed, full-viewport WebGL backdrop (Three.js + GLSL): a slow, organic
-   fbm-noise field tinted with the site's gold/emerald brand colors, with a
-   soft cursor-driven ripple/distortion. It sits behind every page
-   (z-index: -1, pointer-events: none) and never intercepts clicks or covers
-   content — content sits on top via the design system's glass/card surfaces.
+   A fixed, full-viewport WebGL backdrop (Three.js + GLSL) composed of three
+   layers, all behind every page (z-index: -1, pointer-events: none) and
+   never intercepting clicks or covering content:
 
-   Why vanilla Three.js + GLSL (not React Three Fiber): this project ships
-   React via an in-browser Babel <script type="text/babel"> setup with no
-   bundler/npm build step. React Three Fiber is an npm-only package that
-   requires a bundler, so adding it here would mean introducing a whole new
-   build pipeline just for a background effect — a disproportionate,
-   "unnecessary dependency" for what this is. Three.js is already loaded
-   once via CDN and reused as-is.
+     1. Background plane (single fragment-shader pass): organic fbm "liquid"
+        noise, aurora light bands, soft animated light rays, a cheap
+        in-shader bloom approximation, and a cursor ripple/distortion.
+     2. Floating glowing particles (THREE.Points + a real PerspectiveCamera):
+        genuine depth via perspective, drifting forever on the GPU.
+     3. A gentle camera-driven parallax across layers from mouse position on
+        desktop and device tilt on mobile, for the "depth illusion."
 
-   Resilience: gracefully no-ops (falls back to a static on-brand CSS
-   gradient) when WebGL is unavailable, when the user has requested reduced
-   motion, or if the GPU context is lost mid-session.
+   Why vanilla Three.js + GLSL (not React Three Fiber, not TypeScript): this
+   project ships React via an in-browser Babel <script type="text/babel">
+   setup with no bundler/build step. Either would mean introducing a whole
+   new build pipeline just for a background effect — disproportionate here.
+   Three.js is already loaded once via CDN and reused as-is.
+
+   Why simulated bloom (not a real postprocessing pipeline): a true
+   EffectComposer/UnrealBloomPass pipeline needs ~5 more Three.js example
+   scripts loaded on every page. The glow here is faked cheaply inside the
+   single fragment shader instead — visually close, zero extra requests.
+
+   Resilience: gracefully falls back to a static on-brand CSS gradient when
+   WebGL is unavailable, when the user has requested reduced motion, or if
+   the GPU context is lost mid-session.
 
    ---- Customization -------------------------------------------------------
    Everything tunable lives in CONFIG below. Colors are read live from this
@@ -35,22 +44,24 @@
   var CONFIG = {
     // Idle animation speed (time multiplier). Lower = slower, calmer drift.
     speed: 0.05,
-    // How strongly the cursor bends/ripples the noise field (0–1-ish range).
+    // How strongly the cursor bends/ripples the noise field.
     distortionStrength: 0.10,
     // Soft gold glow radius (px) that trails the pointer on fine-pointer
     // devices only (desktop mouse) — skipped on touch, see boot().
     cursorGlowSize: 460,
+    // Max camera offset (world units) for the mouse/tilt parallax — kept
+    // small on purpose ("gentle parallax", never dramatic).
+    parallaxStrength: 0.35,
     // Quality tiers, highest first. `octaves` controls fbm detail (GLSL loop
-    // length, recompiled per tier) and `dprCap` caps devicePixelRatio.
-    // Lower tiers cost meaningfully less GPU time.
+    // length, recompiled per tier), `dprCap` caps devicePixelRatio, and
+    // `particles` caps the floating-particle count for that tier.
     qualityTiers: [
-      { name: 'high', octaves: 4, dprCap: 1.5 },
-      { name: 'medium', octaves: 3, dprCap: 1.0 },
-      { name: 'low', octaves: 2, dprCap: 0.75 }
+      { name: 'high', octaves: 4, dprCap: 1.5, particles: 110 },
+      { name: 'medium', octaves: 3, dprCap: 1.0, particles: 60 },
+      { name: 'low', octaves: 2, dprCap: 0.75, particles: 24 }
     ],
     // Below this average FPS, sustained for `fpsSampleWindow` frames, step
-    // down one quality tier. Never steps back up (avoids visible flicker
-    // between tiers under fluctuating load).
+    // down one quality tier. Never steps back up (avoids visible flicker).
     fpsDowngradeThreshold: 45,
     fpsSampleWindow: 90,
     // CSS custom properties read for brand color (see tokens/colors.css).
@@ -60,7 +71,12 @@
       emerald: { name: '--emerald-500', fallback: '#13B978' },
       baseDark: { name: '--ink-950', fallback: '#06070A' },
       baseLight: { name: '--ivory-50', fallback: '#FCFAF4' }
-    }
+    },
+    // Large-but-safe wrap for uTime so float32 precision never degrades on
+    // very long-running tabs ("infinite seamless looping"). The animation
+    // is purely continuous trig/noise (not a sprite loop), so wrapping the
+    // clock has no visible seam.
+    timeWrap: 6283.184 // 1000 * 2π
   };
 
   /* ---------------------------------------------------------------------
@@ -107,7 +123,7 @@
     var reduceMotionQuery = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)');
     var fineHoverQuery = window.matchMedia && window.matchMedia('(hover: hover) and (pointer: fine)');
 
-    // Requirement 8: fully disable the animated shader for users who asked
+    // Requirement: fully disable the animated shader for users who asked
     // for reduced motion — no canvas, no rAF loop, no mouse-driven motion.
     // They get the same calm static gradient as the no-WebGL fallback.
     if (reduceMotionQuery && reduceMotionQuery.matches) {
@@ -131,9 +147,14 @@
       return;
     }
     document.body.appendChild(canvas);
+    renderer.autoClear = false; // we render two scenes (background + particles) into one frame
 
-    var scene = new THREE.Scene();
-    var camera = new THREE.Camera();
+    var bgScene = new THREE.Scene();
+    var bgCamera = new THREE.Camera(); // clip-space trick camera for the full-screen quad
+
+    var particleScene = new THREE.Scene();
+    var particleCamera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 10);
+    particleCamera.position.z = 3;
 
     function themeVal() { return document.documentElement.getAttribute('data-theme') === 'light' ? 1 : 0; }
 
@@ -175,6 +196,12 @@
         'float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7)))*43758.5453); }',
         'float noise(vec2 p){ vec2 i=floor(p), f=fract(p); float a=hash(i),b=hash(i+vec2(1.,0.)),c=hash(i+vec2(0.,1.)),d=hash(i+vec2(1.,1.)); vec2 u=f*f*(3.-2.*f); return mix(a,b,u.x)+(c-a)*u.y*(1.-u.x)+(d-b)*u.x*u.y; }',
         'float fbm(vec2 p){ float v=0.,a=0.5; for(int i=0;i<' + octaves + ';i++){ v+=a*noise(p); p*=2.02; a*=0.5; } return v; }',
+        // Soft horizontal "aurora" light band: a sine-warped ribbon with a
+        // smooth vertical falloff, gently animated in phase over time.
+        'float auroraBand(vec2 p, float yCenter, float freq, float speed, float thickness){',
+        '  float wave = sin(p.x*freq + uTime*speed) * 0.15;',
+        '  return smoothstep(thickness, 0.0, abs(p.y - yCenter - wave));',
+        '}',
         'void main(){',
         '  vec2 uv=vUv; vec2 asp=vec2(uRes.x/uRes.y,1.0);',
         '  vec2 p=(uv-0.5)*asp; vec2 m=(uMouse-0.5)*asp;',
@@ -198,17 +225,105 @@
         '  vec3 col=base;',
         '  col+=uGold*gold*glow*gi;',
         '  col+=uEmerald*em*glow*ei;',
+        // Aurora layer: two soft ribbons, colors gently cross-fading.
+        '  float a1=auroraBand(p,0.25,2.0,0.06,0.18);',
+        '  float a2=auroraBand(p,-0.15,1.4,-0.045,0.22);',
+        '  vec3 auroraCol=mix(uGold,uEmerald,0.5+0.5*sin(t*0.3));',
+        '  col+=auroraCol*(a1*0.045+a2*0.035)*mix(1.0,0.45,uTheme);',
+        // Light rays: faint streaks fanning from a fixed point near the top,
+        // sharpened with a high power so they read as thin rays, not bands.
+        '  vec2 rayOrigin=vec2(0.0,0.95);',
+        '  vec2 toP=p-rayOrigin;',
+        '  float ang=atan(toP.x,toP.y);',
+        '  float rays=pow(0.5+0.5*sin(ang*7.0+t*0.15),10.0);',
+        '  float rayFall=smoothstep(1.7,0.15,length(toP));',
+        '  col+=uGold*rays*rayFall*0.05*mix(1.0,0.4,uTheme);',
+        // Cheap bloom approximation: a wider, softer halo isolated to the
+        // brightest noise peaks — no real blur pass, just an extra additive
+        // term with a gentler falloff than the sharp glow above it.
+        '  float halo=smoothstep(0.35,1.0,n);',
+        '  col+=mix(uGold,uEmerald,0.5)*halo*0.022*mix(1.0,0.5,uTheme);',
+        // Gentle light attraction toward the cursor.
         '  float prox=smoothstep(0.30,0.0,md);',
         '  col+=uGold*prox*(0.045+uMouseV*uDistort)*mix(1.0,0.6,uTheme);',
-        '  col*=1.0-0.30*length(uv-0.5);', // gentle vignette, premium/glass feel
+        '  col*=1.0-0.30*length(uv-0.5);', // soft vignette, premium/glass feel
         '  col*=mix(0.82,0.94,uTheme);',
         '  gl_FragColor=vec4(col,1.0);',
         '}'
       ].join('\n');
     }
 
-    var mesh = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), null);
-    scene.add(mesh);
+    var bgMesh = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), null);
+    bgScene.add(bgMesh);
+
+    /* ---------------------------------------------------------------------
+       Floating glowing particles — THREE.Points with a real perspective
+       camera, so near/far particles genuinely parallax differently (the
+       "depth illusion"). Motion is computed entirely in the vertex shader
+       (GPU-side), so there's no per-frame CPU buffer work.
+       --------------------------------------------------------------------- */
+    var MAX_PARTICLES = CONFIG.qualityTiers[0].particles;
+    var particleGeo = new THREE.BufferGeometry();
+    var positions = new Float32Array(MAX_PARTICLES * 3);
+    var seeds = new Float32Array(MAX_PARTICLES);
+    var sizes = new Float32Array(MAX_PARTICLES);
+    var mixes = new Float32Array(MAX_PARTICLES);
+    for (var i = 0; i < MAX_PARTICLES; i++) {
+      positions[i * 3 + 0] = (Math.random() - 0.5) * 3.2; // x
+      positions[i * 3 + 1] = (Math.random() - 0.5) * 2.2; // y (wrap volume)
+      positions[i * 3 + 2] = -Math.random() * 2.2; // z depth, in front of camera
+      seeds[i] = Math.random();
+      sizes[i] = 14 + Math.random() * 22;
+      mixes[i] = Math.random();
+    }
+    particleGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    particleGeo.setAttribute('aSeed', new THREE.BufferAttribute(seeds, 1));
+    particleGeo.setAttribute('aSize', new THREE.BufferAttribute(sizes, 1));
+    particleGeo.setAttribute('aMix', new THREE.BufferAttribute(mixes, 1));
+
+    var particleMat = new THREE.ShaderMaterial({
+      uniforms: { uTime: uniforms.uTime, uGold: uniforms.uGold, uEmerald: uniforms.uEmerald, uTheme: uniforms.uTheme },
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+      vertexShader: [
+        'attribute float aSeed; attribute float aSize; attribute float aMix;',
+        'uniform float uTime;',
+        'varying float vMix; varying float vFade;',
+        'void main(){',
+        '  vMix = aMix;',
+        '  vec3 pos = position;',
+        // Slow continuous upward drift that wraps seamlessly within a fixed
+        // volume height — "infinite seamless looping" with no visible pop,
+        // since particles are sparse and randomly distributed.
+        '  float boundsH = 2.2;',
+        '  float drift = uTime * 0.06 * (0.4 + aSeed * 0.6);',
+        '  float y = mod(pos.y + drift + boundsH * 0.5, boundsH) - boundsH * 0.5;',
+        '  pos.y = y + sin(uTime * 0.25 + aSeed * 6.2831) * 0.05;',
+        '  pos.x += cos(uTime * 0.18 + aSeed * 6.2831) * 0.06;',
+        // Fade particles softly near the top/bottom of their wrap volume
+        // instead of popping at the seam.
+        '  vFade = smoothstep(0.0, 0.12, boundsH * 0.5 - abs(y)) ;',
+        '  vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);',
+        '  gl_PointSize = aSize * (1.0 / -mvPosition.z);',
+        '  gl_Position = projectionMatrix * mvPosition;',
+        '}'
+      ].join('\n'),
+      fragmentShader: [
+        'uniform vec3 uGold; uniform vec3 uEmerald; uniform float uTheme;',
+        'varying float vMix; varying float vFade;',
+        'void main(){',
+        '  vec2 c = gl_PointCoord - 0.5;',
+        '  float d = length(c);',
+        '  float a = smoothstep(0.5, 0.0, d); a *= a;', // soft circular glow falloff
+        '  vec3 col = mix(uGold, uEmerald, vMix);',
+        '  float intensity = mix(0.55, 0.32, uTheme);',
+        '  gl_FragColor = vec4(col, a * vFade * intensity);',
+        '}'
+      ].join('\n')
+    });
+    var particlePoints = new THREE.Points(particleGeo, particleMat);
+    particleScene.add(particlePoints);
 
     /* ---------------------------------------------------------------------
        Adaptive performance: pick a starting tier from coarse device
@@ -224,7 +339,8 @@
 
     function applyTier() {
       var tier = CONFIG.qualityTiers[tierIndex];
-      mesh.material = new THREE.ShaderMaterial({ uniforms: uniforms, vertexShader: vert, fragmentShader: buildFragmentShader(tier.octaves) });
+      bgMesh.material = new THREE.ShaderMaterial({ uniforms: uniforms, vertexShader: vert, fragmentShader: buildFragmentShader(tier.octaves) });
+      particleGeo.setDrawRange(0, tier.particles);
       dpr = Math.min(window.devicePixelRatio || 1, tier.dprCap);
       renderer.setPixelRatio(dpr);
       resize();
@@ -234,18 +350,39 @@
       var w = window.innerWidth, h = window.innerHeight;
       renderer.setSize(w, h, false);
       uniforms.uRes.value.set(w * dpr, h * dpr);
+      particleCamera.aspect = w / h;
+      particleCamera.updateProjectionMatrix();
     }
     window.addEventListener('resize', resize);
     applyTier();
 
-    // ---- eased mouse / touch follow (drives the shader ripple uniform) ----
+    // ---- eased mouse / touch follow (drives the shader ripple + parallax) ----
     var target = { x: 0.5, y: 0.5 }, cur = { x: 0.5, y: 0.5 }, vel = 0;
     function onMove(cx, cy) { target.x = cx / window.innerWidth; target.y = 1 - cy / window.innerHeight; }
     window.addEventListener('mousemove', function (e) { onMove(e.clientX, e.clientY); }, { passive: true });
     // Touch support: the ripple/distortion responds to a finger drag the
-    // same way it responds to a mouse, satisfying requirement 6's touch
-    // support without any device branching in the shader itself.
+    // same way it responds to a mouse.
     window.addEventListener('touchmove', function (e) { if (e.touches[0]) onMove(e.touches[0].clientX, e.touches[0].clientY); }, { passive: true });
+
+    // ---- device tilt (mobile parallax) ----
+    // iOS requires an explicit user gesture before motion data can be
+    // requested, so this is only triggered on the first touch, and only
+    // attached at all if permission is granted (or not required).
+    var tilt = { x: 0, y: 0 };
+    function onOrientation(e) {
+      if (typeof e.gamma === 'number') tilt.x = Math.max(-1, Math.min(1, e.gamma / 45));
+      if (typeof e.beta === 'number') tilt.y = Math.max(-1, Math.min(1, (e.beta - 45) / 45));
+    }
+    function requestMotionIfNeeded() {
+      if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+        DeviceOrientationEvent.requestPermission().then(function (state) {
+          if (state === 'granted') window.addEventListener('deviceorientation', onOrientation, { passive: true });
+        }).catch(function () {});
+      } else if (typeof DeviceOrientationEvent !== 'undefined') {
+        window.addEventListener('deviceorientation', onOrientation, { passive: true });
+      }
+    }
+    window.addEventListener('touchstart', requestMotionIfNeeded, { once: true, passive: true });
 
     // ---- decorative cursor-glow trail (desktop only) ----
     // Skipped on touch/coarse-pointer devices on purpose: a glow that
@@ -288,7 +425,7 @@
     new MutationObserver(function () { uniforms.uTheme.value = themeVal(); })
       .observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 
-    // Requirement 4: pause entirely when the tab isn't visible.
+    // Pause entirely when the tab isn't visible.
     var running = true;
     document.addEventListener('visibilitychange', function () {
       running = !document.hidden;
@@ -322,6 +459,8 @@
     // Rolling frame-time sample used purely to decide whether to step down
     // a quality tier; never affects the visuals directly.
     var frameCount = 0, frameTimeSum = 0;
+    // Eased camera-parallax position (mouse on desktop, tilt on mobile).
+    var camPos = { x: 0, y: 0 };
 
     function loop(now) {
       if (!running) return;
@@ -330,9 +469,9 @@
       frameCount++;
       last = now;
 
-      // Adaptive downgrade check (requirement 4: auto-reduce quality on
-      // slower devices). Only ever steps down, and only after a stable
-      // sample window, so a single slow frame can't cause flicker.
+      // Adaptive downgrade check: auto-reduce quality on slower devices.
+      // Only ever steps down, and only after a stable sample window, so a
+      // single slow frame can't cause flicker.
       if (frameCount >= CONFIG.fpsSampleWindow) {
         var avgFps = 1000 / (frameTimeSum / frameCount);
         if (avgFps < CONFIG.fpsDowngradeThreshold && tierIndex < CONFIG.qualityTiers.length - 1) {
@@ -349,7 +488,18 @@
       vel += (Math.min(dv, 3) - vel) * 0.1;
       uniforms.uMouse.value.set(cur.x, cur.y);
       uniforms.uMouseV.value = vel;
-      uniforms.uTime.value += dt * CONFIG.speed;
+      uniforms.uTime.value = (uniforms.uTime.value + dt * CONFIG.speed) % CONFIG.timeWrap;
+
+      // Gentle parallax: blend desktop mouse offset and mobile tilt into a
+      // single small camera offset, eased for smoothness — the "depth
+      // illusion" comes from the particles' real perspective projection.
+      var parTargetX = (cur.x - 0.5) * CONFIG.parallaxStrength + tilt.x * (CONFIG.parallaxStrength * 0.6);
+      var parTargetY = (cur.y - 0.5) * CONFIG.parallaxStrength + tilt.y * (CONFIG.parallaxStrength * 0.6);
+      camPos.x += (parTargetX - camPos.x) * 0.04;
+      camPos.y += (parTargetY - camPos.y) * 0.04;
+      particleCamera.position.x = camPos.x;
+      particleCamera.position.y = camPos.y;
+      particleCamera.lookAt(0, 0, -1);
 
       if (glow) {
         gpos.x += (graw.x - gpos.x) * 0.18;
@@ -357,7 +507,10 @@
         if (glowMounted) glow.style.transform = 'translate(' + gpos.x + 'px,' + gpos.y + 'px)';
       }
 
-      renderer.render(scene, camera);
+      renderer.clear();
+      renderer.render(bgScene, bgCamera);
+      renderer.clearDepth();
+      renderer.render(particleScene, particleCamera);
       requestAnimationFrame(loop);
     }
     requestAnimationFrame(loop);
