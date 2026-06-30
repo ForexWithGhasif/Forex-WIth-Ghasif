@@ -7,7 +7,7 @@ function Performance() {
       lead="A track record only matters if it’s honest. We log every trade, the losers included, and report the figures that actually reflect risk-adjusted consistency." />
     <div style={{display:'grid',gridTemplateColumns:'1.2fr 0.8fr',gap:'18px',alignItems:'stretch'}} className="fwg-hero-grid">
       <KitCard padding="0" style={{overflow:'hidden'}}>
-        <div style={{padding:'20px 22px',borderBottom:'1px solid var(--border-subtle)',display:'flex',justifyContent:'space-between',alignItems:'baseline'}}>
+        <div style={{padding:'20px 22px',borderBottom:'1px solid var(--border-subtle)',display:'flex',justifyContent:'space-between',alignItems:'baseline',flexWrap:'wrap',gap:'8px'}}>
           <div>
             <div style={{fontSize:'var(--text-2xs)',textTransform:'uppercase',letterSpacing:'0.14em',color:'var(--text-tertiary)',marginBottom:'8px'}}>Verified equity curve · 12 months</div>
             <div style={{display:'flex',alignItems:'baseline',gap:'12px'}}>
