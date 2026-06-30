@@ -2,13 +2,9 @@
   "framework": null,
   "buildCommand": null,
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/index" },
-    { "source": "/", "destination": "/ui_kits/website/index.html" },
-    { "source": "/about", "destination": "/ui_kits/website/about.html" },
-    { "source": "/services", "destination": "/ui_kits/website/services.html" },
-    { "source": "/performance", "destination": "/ui_kits/website/performance.html" },
-    { "source": "/pricing", "destination": "/ui_kits/website/pricing.html" },
-    { "source": "/blog", "destination": "/ui_kits/website/blog.html" },
-    { "source": "/contact", "destination": "/ui_kits/website/contact.html" }
+    { "source": "/api/(.*)", "destination": "/api/index" }
+  ],
+  "redirects": [
+    { "source": "/", "destination": "/ui_kits/website/index.html", "permanent": false }
   ]
 }
