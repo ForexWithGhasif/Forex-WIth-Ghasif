@@ -541,73 +541,32 @@ function ClientPerformancePage() {
 /* Backtesting: structure/UI only for now (per spec) — the replay engine
    connects to a real historical-data provider next; nothing on this page
    fabricates candles or prices in the meantime. */
-/* ---------- Backtesting: sample historical data + replay engine ----------
-   The rest of this file only ever renders numbers pulled from a user-scoped
-   fetch (see the banner at the top) — backtesting is the deliberate
-   exception, since replaying history is the entire point of a backtester.
-   The candles below are a seeded, deterministic synthetic random walk, NOT
-   real market prices. Every place this data reaches the UI says "Sample
-   data" so nobody mistakes a backtest run here for validation against real
-   history. Closed trades save into the same `trades` table the Journal
-   reads (source: 'backtest') — that column and the Journal's "BT" badge
-   were already built for exactly this (see tradeService.js, ClientPages2.jsx). */
+/* ---------- Backtesting: real historical data + replay engine ----------
+   Candles come from GET /api/market-history (backend/services/
+   marketHistoryService.js), which pulls real historical OHLC from Yahoo
+   Finance's public chart API — the same trusted, keyless source already
+   used for the live spot quotes on the Markets page. This is genuine
+   market history, not synthetic data: forex pairs report no real trade
+   volume (OTC market), so the volume pane only renders for XAU/USD, which
+   is sourced from real COMEX gold-futures history (labeled as such, since
+   futures carry a small persistent premium over spot). Closed trades save
+   into the same `trades` table the Journal reads (source: 'backtest') —
+   that column and the Journal's "BT" badge were already built for exactly
+   this (see tradeService.js, ClientPages2.jsx). */
 
 const BT_SYMBOLS = [
-  { value:'XAUUSD', label:'XAU/USD', base:2350.00, decimals:2 },
-  { value:'EURUSD', label:'EUR/USD', base:1.0850, decimals:5 },
-  { value:'GBPUSD', label:'GBP/USD', base:1.2680, decimals:5 },
+  { value:'XAUUSD', label:'XAU/USD', decimals:2 },
+  { value:'EURUSD', label:'EUR/USD', decimals:5 },
+  { value:'GBPUSD', label:'GBP/USD', decimals:5 },
 ];
 const BT_TIMEFRAMES = [
-  { value:'M15', label:'15m', mins:15,   vol:0.09 },
-  { value:'H1',  label:'1H',  mins:60,   vol:0.16 },
-  { value:'H4',  label:'4H',  mins:240,  vol:0.30 },
-  { value:'D1',  label:'1D',  mins:1440, vol:0.55 },
+  { value:'M15', label:'15m' },
+  { value:'H1',  label:'1H' },
+  { value:'H4',  label:'4H' },
+  { value:'D1',  label:'1D' },
 ];
-const BT_PREROLL = 60;
-const BT_REPLAY_LEN = 220;
 const BT_SPEEDS = [1,2,4,8];
 
-function fwgHashSeed(str) {
-  let h = 2166136261;
-  for (let i=0;i<str.length;i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
-  return h >>> 0;
-}
-function fwgMulberry32(seed) {
-  let t = seed;
-  return function() {
-    t += 0x6D2B79F5;
-    let x = Math.imul(t ^ (t >>> 15), t | 1);
-    x ^= x + Math.imul(x ^ (x >>> 7), x | 61);
-    return ((x ^ (x >>> 14)) >>> 0) / 4294967296;
-  };
-}
-/* Deterministic per symbol+timeframe — the same "history" reappears on every
-   reload (a stable sample dataset) while still differing across symbols. */
-function fwgGenerateSampleCandles(symbolMeta, tf, count) {
-  const rand = fwgMulberry32(fwgHashSeed(symbolMeta.value+'|'+tf.value));
-  const stepSec = tf.mins*60;
-  const nowSec = Math.floor(Date.now()/1000/stepSec)*stepSec;
-  let price = symbolMeta.base;
-  let vol = tf.vol * symbolMeta.base * 0.0022;
-  const candles = [];
-  for (let i=count-1; i>=0; i--) {
-    const time = nowSec - i*stepSec;
-    vol = Math.max(vol*0.92 + rand()*symbolMeta.base*0.0006*tf.vol, symbolMeta.base*0.00015);
-    const open = price;
-    let hi=open, lo=open, cur=open;
-    for (let k=0;k<5;k++) { cur += (rand()-0.5)*vol*0.7; hi=Math.max(hi,cur); lo=Math.min(lo,cur); }
-    cur += (rand()-0.5)*vol*0.9;
-    hi = Math.max(hi,cur); lo = Math.min(lo,cur);
-    const close = cur;
-    candles.push({
-      time, volume: Math.round(180+rand()*760),
-      open:+open.toFixed(symbolMeta.decimals), high:+hi.toFixed(symbolMeta.decimals),
-      low:+lo.toFixed(symbolMeta.decimals), close:+close.toFixed(symbolMeta.decimals),
-    });
-    price = close;
-  }
-  return candles;
-}
 function fwgVolBar(c) { return { time:c.time, value:c.volume, color: c.close>=c.open ? 'rgba(47,208,138,0.5)' : 'rgba(242,112,111,0.5)' }; }
 function fwgComputePnl(direction, entry, price, size) { return (direction==='Buy' ? (price-entry) : (entry-price)) * size; }
 function fwgMaxDrawdownFromEquity(points) {
@@ -676,7 +635,8 @@ function ClientBacktestingPage() {
   const [accountId, setAccountId] = React.useState('');
   const [linkedStats, setLinkedStats] = React.useState(null);
 
-  const [cursor, setCursor] = React.useState(BT_PREROLL);
+  const [history, setHistory] = React.useState({ status:'loading', candles:[], hasVolume:false, label:'', source:'' });
+  const [cursor, setCursor] = React.useState(0);
   const [playing, setPlaying] = React.useState(false);
   const [speed, setSpeed] = React.useState(1);
 
@@ -685,16 +645,16 @@ function ClientBacktestingPage() {
   const [slInput, setSlInput] = React.useState('');
   const [tpInput, setTpInput] = React.useState('');
   const [closedTrades, setClosedTrades] = React.useState([]);
-  const [savedIds, setSavedIds] = React.useState({});
-  const [savingId, setSavingId] = React.useState(null);
+  const [saveStatus, setSaveStatus] = React.useState({}); // tradeId -> 'saved' | 'failed'
 
   const chartApiRef = React.useRef(null);
   const tradeSeqRef = React.useRef(0);
 
   const symbolMeta = BT_SYMBOLS.find(s=>s.value===symbolValue);
   const tfMeta = BT_TIMEFRAMES.find(t=>t.value===tfValue);
-  const dataset = React.useMemo(() => fwgGenerateSampleCandles(symbolMeta, tfMeta, BT_PREROLL+BT_REPLAY_LEN), [symbolValue, tfValue]);
-  const atEnd = cursor >= dataset.length-1;
+  const dataset = history.candles;
+  const preroll = dataset.length ? Math.max(5, Math.round(dataset.length*0.2)) : 0;
+  const atEnd = dataset.length ? cursor >= dataset.length-1 : true;
 
   React.useEffect(() => {
     (async () => {
@@ -705,6 +665,27 @@ function ClientBacktestingPage() {
       } catch (err) {}
     })();
   }, []);
+
+  // Real historical OHLC from Yahoo Finance (backend/services/marketHistoryService.js) — no sample/synthetic data.
+  React.useEffect(() => {
+    let cancelled = false;
+    setHistory(h => ({ ...h, status:'loading' }));
+    (async () => {
+      try {
+        const res = await fetch(`${window.FWG_API_BASE}/api/market-history?symbol=${symbolValue}&timeframe=${tfValue}`);
+        const data = await res.json().catch(()=>({}));
+        if (cancelled) return;
+        if (res.ok && data.success && data.candles && data.candles.length>1) {
+          setHistory({ status:'ready', candles:data.candles, hasVolume:!!data.hasVolume, label:data.label, source:data.source });
+        } else {
+          setHistory({ status:'error', candles:[], hasVolume:false, label:'', source:'' });
+        }
+      } catch (err) {
+        if (!cancelled) setHistory({ status:'error', candles:[], hasVolume:false, label:'', source:'' });
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [symbolValue, tfValue]);
 
   /* Picking a real trading account here isn't just a label on saved trades:
      it seeds this session from that account's actual live balance (starting
@@ -727,25 +708,30 @@ function ClientBacktestingPage() {
     return () => { cancelled = true; };
   }, [accountId]);
 
-  // New symbol/timeframe = a fresh session: reset replay, position, and log.
+  // New data (symbol/timeframe) or a different linked account = a fresh session.
   React.useEffect(() => {
-    setCursor(BT_PREROLL); setPlaying(false); setPosition(null); setClosedTrades([]);
+    setPlaying(false); setPosition(null); setClosedTrades([]); setSaveStatus({});
+    if (!dataset.length) { setCursor(0); return; }
+    setCursor(preroll);
     const api = chartApiRef.current;
     if (api) {
-      const visible = dataset.slice(0, BT_PREROLL);
+      api.candleSeries.applyOptions({ priceFormat: { type:'price', precision: symbolMeta.decimals, minMove: 1/Math.pow(10, symbolMeta.decimals) } });
+      const visible = dataset.slice(0, preroll);
       api.candleSeries.setData(visible);
-      api.volumeSeries.setData(visible.map(fwgVolBar));
+      api.volumeSeries.setData(history.hasVolume ? visible.map(fwgVolBar) : []);
       api.chart.timeScale().fitContent();
     }
-  }, [dataset]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dataset, accountId]);
 
   function revealTo(targetIndex) {
+    if (!dataset.length) return;
     const api = chartApiRef.current;
     const to = Math.max(0, Math.min(targetIndex, dataset.length-1));
     if (to === cursor) return;
     if (to < cursor) {
       const visible = dataset.slice(0, to+1);
-      if (api) { api.candleSeries.setData(visible); api.volumeSeries.setData(visible.map(fwgVolBar)); }
+      if (api) { api.candleSeries.setData(visible); api.volumeSeries.setData(history.hasVolume ? visible.map(fwgVolBar) : []); }
       setPosition(pos => (pos && pos.openIndex>to) ? null : pos);
       setClosedTrades(list => list.filter(t=>t.closeIndex<=to));
       setCursor(to);
@@ -755,7 +741,7 @@ function ClientBacktestingPage() {
     const newClosed = [];
     for (let i=cursor+1; i<=to; i++) {
       const candle = dataset[i];
-      if (api) { api.candleSeries.update(candle); api.volumeSeries.update(fwgVolBar(candle)); }
+      if (api) { api.candleSeries.update(candle); if (history.hasVolume) api.volumeSeries.update(fwgVolBar(candle)); }
       if (pos) {
         let hit = null;
         if (pos.sl!=null) { const h = pos.direction==='Buy' ? candle.low<=pos.sl : candle.high>=pos.sl; if (h) hit = { price:pos.sl, tag:'Stop loss' }; }
@@ -768,7 +754,7 @@ function ClientBacktestingPage() {
         }
       }
     }
-    if (newClosed.length) setClosedTrades(list => [...list, ...newClosed]);
+    if (newClosed.length) { setClosedTrades(list => [...list, ...newClosed]); newClosed.forEach(autoSaveTrade); }
     setPosition(pos);
     setCursor(to);
   }
@@ -781,7 +767,7 @@ function ClientBacktestingPage() {
   }, [playing, atEnd, cursor, speed, position, dataset]);
 
   function openPosition(dir) {
-    if (position) return;
+    if (position || !accountId || !dataset.length) return;
     const entryPrice = dataset[cursor].close;
     const size = Math.max(1, Number(sizeInput)||1);
     setPosition({ direction:dir, entry:entryPrice, size, sl: slInput===''?null:Number(slInput), tp: tpInput===''?null:Number(tpInput), openIndex:cursor });
@@ -791,7 +777,9 @@ function ClientBacktestingPage() {
     const exitPrice = dataset[cursor].close;
     const pnl = fwgComputePnl(position.direction, position.entry, exitPrice, position.size);
     tradeSeqRef.current += 1;
-    setClosedTrades(list => [...list, fwgBuildTradeRecord(position, cursor, exitPrice, pnl, 'Manual', dataset, symbolMeta, tradeSeqRef.current)]);
+    const rec = fwgBuildTradeRecord(position, cursor, exitPrice, pnl, 'Manual', dataset, symbolMeta, tradeSeqRef.current);
+    setClosedTrades(list => [...list, rec]);
+    autoSaveTrade(rec);
     setPosition(null);
   }
   function suggestSize() {
@@ -803,24 +791,30 @@ function ClientBacktestingPage() {
     const riskAmount = (Number(startingBalance)||0) * (Number(riskPct)||0) / 100;
     setSizeInput(String(Math.max(1, Math.round(riskAmount/dist))));
   }
-  async function saveTradeToJournal(trade) {
-    setSavingId(trade.id);
+  /* Every closed trade saves itself immediately — no manual "save" step —
+     so the linked account's balance, the Journal (tagged "BT"), Dashboard,
+     and Performance all reflect it the next time the user opens those pages.
+     Requires accountId because Buy/Sell are disabled until an account is
+     linked (see the render below), so this is never called without one. */
+  async function autoSaveTrade(trade) {
     try {
       const res = await fetch(`${window.FWG_API_BASE}/api/trades`, {
         method:'POST', credentials:'include', headers:{'Content-Type':'application/json'},
         body: JSON.stringify({
           date:trade.date, symbol:trade.symbol, direction:trade.direction, entry:trade.entry, exit:trade.exit,
           stopLoss:trade.stopLoss, takeProfit:trade.takeProfit, result:trade.result, riskReward:trade.riskReward,
-          rMultiple:trade.rMultiple, pnl:trade.pnl, accountId: accountId||null, source:'backtest',
-          notes:`Backtesting session — ${symbolMeta.label} ${tfMeta.label}, sample data, closed by ${trade.closedBy}.`,
+          rMultiple:trade.rMultiple, pnl:trade.pnl, accountId, source:'backtest',
+          notes:`Backtesting session — ${symbolMeta.label} ${tfMeta.label}, real historical data (${history.source}), closed by ${trade.closedBy}.`,
         }),
       });
       const data = await res.json().catch(()=>({}));
-      if (res.ok && data.success) setSavedIds(s=>({...s,[trade.id]:true}));
-    } catch (err) {} finally { setSavingId(null); }
+      setSaveStatus(s => ({ ...s, [trade.id]: (res.ok && data.success) ? 'saved' : 'failed' }));
+    } catch (err) {
+      setSaveStatus(s => ({ ...s, [trade.id]: 'failed' }));
+    }
   }
 
-  const currentPrice = dataset[cursor].close;
+  const currentPrice = dataset.length ? dataset[cursor].close : null;
   const realized = closedTrades.reduce((s,t)=>s+t.pnl, 0);
   const unrealized = position ? fwgComputePnl(position.direction, position.entry, currentPrice, position.size) : 0;
   const balance = (Number(startingBalance)||0) + realized;
@@ -836,10 +830,10 @@ function ClientBacktestingPage() {
   return <React.Fragment>
     <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:'12px',marginBottom:'20px'}}>
       <h1 style={{fontFamily:'var(--font-display)',fontWeight:800,fontSize:'var(--text-2xl)',letterSpacing:'var(--ls-tight)',margin:0}}>Backtesting</h1>
-      <KitBadge tone="neutral" mono>Sample data — not real market prices</KitBadge>
+      <KitBadge tone="neutral" mono>Real historical data{history.source?` — ${history.source}`:''}</KitBadge>
     </div>
 
-    <KitCard padding="0" style={{overflow:'hidden',marginBottom:'20px'}}>
+    <KitCard padding="0" style={{overflow:'hidden'}}>
       <div style={{padding:'14px 18px',borderBottom:'1px solid var(--border-subtle)',display:'flex',gap:'10px',flexWrap:'wrap',alignItems:'center',justifyContent:'space-between'}}>
         <div style={{display:'flex',gap:'10px',flexWrap:'wrap',alignItems:'center'}}>
           <select value={symbolValue} onChange={e=>setSymbolValue(e.target.value)} style={{...CLIENT_INPUT_STYLE,width:'auto',cursor:'pointer'}}>
@@ -857,13 +851,43 @@ function ClientBacktestingPage() {
             })}
           </div>
         </div>
-        <div style={{fontFamily:'var(--font-mono)',fontSize:'var(--text-md)',fontWeight:700}}>{currentPrice.toFixed(symbolMeta.decimals)}</div>
+        <div style={{fontFamily:'var(--font-mono)',fontSize:'var(--text-md)',fontWeight:700}}>
+          {history.status==='loading' ? <span style={{color:'var(--text-muted)',fontSize:'var(--text-sm)'}}>Loading…</span> : currentPrice!=null ? currentPrice.toFixed(symbolMeta.decimals) : '—'}
+        </div>
       </div>
 
-      <ClientBacktestChartCanvas chartApiRef={chartApiRef}/>
+      <div style={{padding:'12px 18px',borderBottom:'1px solid var(--border-subtle)',display:'flex',gap:'12px',flexWrap:'wrap',alignItems:'center',background:'var(--surface-inset)'}}>
+        <span style={{fontSize:'var(--text-2xs)',textTransform:'uppercase',letterSpacing:'0.1em',color:'var(--text-muted)',fontWeight:700,whiteSpace:'nowrap'}}>Trading account</span>
+        <select value={accountId} onChange={e=>setAccountId(e.target.value)} style={{...CLIENT_INPUT_STYLE,width:'auto',minWidth:'220px',cursor:'pointer'}}>
+          <option value="">{accounts.length ? 'Select an account to start trading' : 'No trading accounts yet'}</option>
+          {accounts.map(a=>(<option key={a.id} value={String(a.id)}>{a.name}</option>))}
+        </select>
+        {accounts.length===0 && <span style={{fontSize:'var(--text-xs)',color:'var(--text-tertiary)'}}>
+          <a href="/client/accounts" style={{color:'var(--text-gold)',fontWeight:700,textDecoration:'none'}}>Create a trading account</a> first — every backtest trade needs one to save against.
+        </span>}
+        {linkedStats && <span style={{fontSize:'var(--text-xs)',color:'var(--text-tertiary)'}}>
+          Live balance <strong style={{color:'var(--text-gold)',fontFamily:'var(--font-mono)'}}>{fwgFormatMoney(linkedStats.accountBalance)}</strong> from {linkedStats.totalTrades} real trade{linkedStats.totalTrades===1?'':'s'} — every trade you close here saves straight into it.
+        </span>}
+        {linkedStats && linkedStats.maxDrawdownLimitPct!=null && maxDrawdownPct>linkedStats.maxDrawdownLimitPct && (
+          <span style={{fontSize:'var(--text-xs)',color:'var(--bearish)',fontWeight:700}}>
+            This session has breached {linkedStats.name}'s {linkedStats.maxDrawdownLimitPct}% max drawdown limit ({fwgFormatPct(maxDrawdownPct)}).
+          </span>
+        )}
+      </div>
+
+      {history.label && history.label!==symbolMeta.label && (
+        <div style={{padding:'8px 18px',borderBottom:'1px solid var(--border-subtle)',fontSize:'var(--text-2xs)',color:'var(--text-muted)'}}>{history.label}</div>
+      )}
+
+      {history.status==='error'
+        ? <div style={{padding:'60px 20px',textAlign:'center',background:'#0d1019'}}>
+            <Icon name="wifi-off" size={28} color="var(--text-muted)"/>
+            <p style={{fontSize:'var(--text-sm)',color:'var(--text-tertiary)',marginTop:'12px'}}>Couldn't load historical data for {symbolMeta.label} right now. Try a different symbol/timeframe or refresh.</p>
+          </div>
+        : <ClientBacktestChartCanvas chartApiRef={chartApiRef}/>}
 
       <div style={{padding:'14px 18px',borderTop:'1px solid var(--border-subtle)',display:'flex',gap:'10px',alignItems:'center',flexWrap:'wrap'}}>
-        <button type="button" onClick={()=>revealTo(BT_PREROLL)} title="Back to start"
+        <button type="button" onClick={()=>revealTo(preroll)} disabled={!dataset.length} title="Back to start"
           style={{width:'38px',height:'38px',borderRadius:'var(--radius-md)',background:'var(--surface-inset)',border:'1px solid var(--border-default)',color:'var(--text-secondary)',display:'inline-flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}>
           <Icon name="skip-back" size={16}/>
         </button>
@@ -878,114 +902,54 @@ function ClientBacktestingPage() {
         <select value={speed} onChange={e=>setSpeed(Number(e.target.value))} style={{...CLIENT_INPUT_STYLE,width:'auto',cursor:'pointer'}}>
           {BT_SPEEDS.map(s=>(<option key={s} value={s}>{s}x</option>))}
         </select>
-        <input type="range" min={BT_PREROLL} max={dataset.length-1} value={cursor} onChange={e=>{ setPlaying(false); revealTo(Number(e.target.value)); }}
+        <input type="range" min={preroll} max={Math.max(preroll,dataset.length-1)} value={cursor} disabled={!dataset.length} onChange={e=>{ setPlaying(false); revealTo(Number(e.target.value)); }}
           style={{flex:1,minWidth:'140px',accentColor:'var(--accent)'}}/>
-        <span style={{fontFamily:'var(--font-mono)',fontSize:'var(--text-xs)',color:'var(--text-muted)',whiteSpace:'nowrap'}}>{cursor-BT_PREROLL+1} / {dataset.length-BT_PREROLL}</span>
+        <span style={{fontFamily:'var(--font-mono)',fontSize:'var(--text-xs)',color:'var(--text-muted)',whiteSpace:'nowrap'}}>{dataset.length ? `${cursor-preroll+1} / ${dataset.length-preroll}` : '—'}</span>
       </div>
 
-      <div style={{padding:'14px 18px',borderTop:'1px solid var(--border-subtle)',display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:'12px',background:'var(--surface-inset)'}} className="fwg-grid-3">
-        <div><div style={{fontSize:'var(--text-2xs)',textTransform:'uppercase',letterSpacing:'0.1em',color:'var(--text-muted)',fontWeight:700,marginBottom:'4px'}}>Account balance</div><div style={{fontFamily:'var(--font-mono)',fontWeight:700}}>{fwgFormatMoney(balance)}</div></div>
-        <div><div style={{fontSize:'var(--text-2xs)',textTransform:'uppercase',letterSpacing:'0.1em',color:'var(--text-muted)',fontWeight:700,marginBottom:'4px'}}>Realized P/L</div><div style={{fontFamily:'var(--font-mono)',fontWeight:700,color:realized>0?'var(--bullish)':realized<0?'var(--bearish)':'var(--text-primary)'}}>{fwgFormatMoney(realized)}</div></div>
-        <div><div style={{fontSize:'var(--text-2xs)',textTransform:'uppercase',letterSpacing:'0.1em',color:'var(--text-muted)',fontWeight:700,marginBottom:'4px'}}>Unrealized P/L</div><div style={{fontFamily:'var(--font-mono)',fontWeight:700,color:unrealized>0?'var(--bullish)':unrealized<0?'var(--bearish)':'var(--text-primary)'}}>{position?fwgFormatMoney(unrealized):'—'}</div></div>
-      </div>
-    </KitCard>
-
-    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'16px',marginBottom:'20px'}} className="fwg-grid-2">
-      <KitCard>
-        <div style={{fontSize:'var(--text-xs)',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.08em',color:'var(--text-muted)',marginBottom:'14px'}}>Trade controls</div>
-        <div style={{display:'flex',flexDirection:'column',gap:'12px'}}>
-          <div>
-            <ClientFieldLabel>Trading account (optional)</ClientFieldLabel>
-            <ClientSelect value={accountId} onChange={setAccountId} placeholder="Don't link an account — use custom balance below" options={accounts.map(a=>({value:String(a.id),label:a.name}))}/>
-            {linkedStats && <p style={{fontSize:'var(--text-2xs)',color:'var(--text-tertiary)',margin:'8px 0 0',lineHeight:1.5}}>
-              Linked to <strong style={{color:'var(--text-gold)'}}>{linkedStats.name}</strong> — using its live balance ({fwgFormatMoney(linkedStats.accountBalance)} from {linkedStats.totalTrades} real trade{linkedStats.totalTrades===1?'':'s'}). Trades you save from this session add to that same balance.
-            </p>}
-            {linkedStats && linkedStats.maxDrawdownLimitPct!=null && maxDrawdownPct>linkedStats.maxDrawdownLimitPct && (
-              <p style={{fontSize:'var(--text-2xs)',color:'var(--bearish)',fontWeight:700,margin:'8px 0 0',lineHeight:1.5}}>
-                This session's drawdown ({fwgFormatPct(maxDrawdownPct)}) has breached {linkedStats.name}'s {linkedStats.maxDrawdownLimitPct}% max drawdown limit.
-              </p>
-            )}
-          </div>
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'14px'}} className="fwg-grid-2">
-            <div><ClientFieldLabel>Starting balance{accountId?' (from account)':''}</ClientFieldLabel><input type="number" style={CLIENT_INPUT_STYLE} value={startingBalance} onChange={e=>setStartingBalance(e.target.value)} disabled={!!accountId}/></div>
-            <div><ClientFieldLabel>Risk %{accountId?' (from account)':''}</ClientFieldLabel><input type="number" style={CLIENT_INPUT_STYLE} value={riskPct} onChange={e=>setRiskPct(e.target.value)} disabled={!!accountId}/></div>
-          </div>
-          <div style={{display:'flex',gap:'8px'}}>
-            <KitButton as="button" type="button" variant="emerald" fullWidth disabled={!!position} onClick={()=>openPosition('Buy')}>Buy</KitButton>
-            <button type="button" disabled={!!position} onClick={()=>openPosition('Sell')}
-              style={{flex:1,display:'inline-flex',alignItems:'center',justifyContent:'center',padding:'12px 22px',borderRadius:'var(--radius-md)',fontWeight:700,fontSize:'var(--text-sm)',cursor:position?'not-allowed':'pointer',
-                background:'var(--bearish-bg)',color:'var(--bearish)',border:'1px solid rgba(228,71,74,0.32)',opacity:position?0.5:1}}>
-              Sell
-            </button>
-          </div>
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'10px'}} className="fwg-grid-2">
-            <input type="number" step="any" placeholder="Stop loss" style={CLIENT_INPUT_STYLE} value={slInput} onChange={e=>setSlInput(e.target.value)} disabled={!!position}/>
-            <input type="number" step="any" placeholder="Take profit" style={CLIENT_INPUT_STYLE} value={tpInput} onChange={e=>setTpInput(e.target.value)} disabled={!!position}/>
-          </div>
-          <div style={{display:'flex',gap:'8px',alignItems:'center'}}>
-            <input type="number" placeholder="Position size (units)" style={CLIENT_INPUT_STYLE} value={sizeInput} onChange={e=>setSizeInput(e.target.value)} disabled={!!position}/>
-            <button type="button" onClick={suggestSize} disabled={!!position || slInput===''} title="Size from risk % and stop distance"
-              style={{flexShrink:0,padding:'12px 14px',borderRadius:'var(--radius-md)',fontSize:'var(--text-xs)',fontWeight:700,cursor:(!!position||slInput==='')?'not-allowed':'pointer',
-                background:'var(--surface-inset)',border:'1px solid var(--border-default)',color:'var(--text-secondary)',opacity:(!!position||slInput==='')?0.5:1,whiteSpace:'nowrap'}}>
-              Suggest size
-            </button>
-          </div>
-          {position && <div style={{padding:'12px 14px',borderRadius:'var(--radius-md)',background:'var(--surface-inset)',border:'1px solid var(--border-default)',display:'flex',alignItems:'center',justifyContent:'space-between',gap:'10px'}}>
-            <span style={{fontSize:'var(--text-xs)',color:position.direction==='Buy'?'var(--bullish)':'var(--bearish)',fontWeight:700}}>{position.direction} @ {position.entry.toFixed(symbolMeta.decimals)}</span>
-            <KitButton as="button" type="button" variant="secondary" size="sm" onClick={manualClose}>Close</KitButton>
-          </div>}
-        </div>
-      </KitCard>
-      <KitCard>
-        <div style={{fontSize:'var(--text-xs)',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.08em',color:'var(--text-muted)',marginBottom:'14px'}}>Session stats</div>
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'12px'}}>
-          <ClientStatCard label="Balance" value={fwgFormatMoney(balance)} />
-          <ClientStatCard label="Realized P/L" value={fwgFormatMoney(realized)} accent={realized>0?'var(--bullish)':realized<0?'var(--bearish)':undefined} />
-          <ClientStatCard label="Trades closed" value={closedTrades.length} />
-          <ClientStatCard label="Max drawdown" value={fwgFormatPct(maxDrawdownPct)} accent={maxDrawdownPct>0?'var(--bearish)':undefined} />
-        </div>
-      </KitCard>
-    </div>
-
-    <KitCard padding="0" style={{overflow:'hidden'}}>
-      <div style={{padding:'18px 20px',borderBottom:'1px solid var(--border-subtle)'}}>
-        <span style={{fontFamily:'var(--font-body)',fontWeight:700,fontSize:'var(--text-sm)'}}>Session trades</span>
-      </div>
-      {!closedTrades.length
-        ? <div style={{padding:'32px 20px',textAlign:'center',fontSize:'var(--text-sm)',color:'var(--text-tertiary)'}}>No trades closed yet this session.</div>
-        : <div className="fwg-tablewrap">
-            <div style={{minWidth:'720px'}}>
-              <table style={{width:'100%',borderCollapse:'collapse',fontSize:'var(--text-sm)'}}>
-                <thead><tr>
-                  {['Direction','Entry','Exit','Result','P/L','Closed by',''].map(h=>(
-                    <th key={h} style={{textAlign:'left',padding:'11px 16px',fontSize:'var(--text-2xs)',textTransform:'uppercase',letterSpacing:'0.1em',color:'var(--text-muted)',fontWeight:700,borderBottom:'1px solid var(--border-default)',background:'var(--surface-inset)'}}>{h}</th>
-                  ))}
-                </tr></thead>
-                <tbody>
-                  {[...closedTrades].reverse().map(t=>(
-                    <tr key={t.id}>
-                      <td style={{padding:'11px 16px',borderBottom:'1px solid var(--border-subtle)',fontWeight:700,color:t.direction==='Buy'?'var(--bullish)':'var(--bearish)'}}>{t.direction}</td>
-                      <td style={{padding:'11px 16px',borderBottom:'1px solid var(--border-subtle)',fontFamily:'var(--font-mono)'}}>{t.entry.toFixed(symbolMeta.decimals)}</td>
-                      <td style={{padding:'11px 16px',borderBottom:'1px solid var(--border-subtle)',fontFamily:'var(--font-mono)'}}>{t.exit.toFixed(symbolMeta.decimals)}</td>
-                      <td style={{padding:'11px 16px',borderBottom:'1px solid var(--border-subtle)',fontWeight:700,color:t.result==='Win'?'var(--bullish)':t.result==='Loss'?'var(--bearish)':'var(--text-tertiary)'}}>{t.result}</td>
-                      <td style={{padding:'11px 16px',borderBottom:'1px solid var(--border-subtle)',fontFamily:'var(--font-mono)',color:t.pnl>0?'var(--bullish)':t.pnl<0?'var(--bearish)':'var(--text-primary)'}}>{fwgFormatMoney(t.pnl)}</td>
-                      <td style={{padding:'11px 16px',borderBottom:'1px solid var(--border-subtle)',color:'var(--text-tertiary)'}}>{t.closedBy}</td>
-                      <td style={{padding:'11px 16px',borderBottom:'1px solid var(--border-subtle)'}}>
-                        {savedIds[t.id]
-                          ? <KitBadge tone="neutral" mono>Saved</KitBadge>
-                          : <button type="button" onClick={()=>saveTradeToJournal(t)} disabled={savingId===t.id}
-                              style={{padding:'6px 12px',borderRadius:'var(--radius-sm)',fontSize:'var(--text-xs)',fontWeight:700,cursor:savingId===t.id?'not-allowed':'pointer',background:'var(--accent-soft-bg)',border:'1px solid var(--border-gold)',color:'var(--text-gold)'}}>
-                              {savingId===t.id?'Saving…':'Save to journal'}
-                            </button>}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+      <div style={{padding:'14px 18px',borderTop:'1px solid var(--border-subtle)',display:'flex',flexWrap:'wrap',gap:'12px',alignItems:'center',justifyContent:'space-between'}}>
+        {!accountId
+          ? <span style={{fontSize:'var(--text-sm)',color:'var(--text-tertiary)'}}>Select a trading account above to start trading.</span>
+          : history.status!=='ready'
+          ? <span style={{fontSize:'var(--text-sm)',color:'var(--text-tertiary)'}}>{history.status==='loading' ? 'Loading historical data…' : 'Historical data unavailable right now.'}</span>
+          : position
+          ? <div style={{display:'flex',alignItems:'center',gap:'12px',flexWrap:'wrap'}}>
+              <span style={{fontSize:'var(--text-sm)',fontWeight:700,color:position.direction==='Buy'?'var(--bullish)':'var(--bearish)'}}>{position.direction} @ {position.entry.toFixed(symbolMeta.decimals)}</span>
+              {position.sl!=null && <span style={{fontSize:'var(--text-xs)',color:'var(--text-tertiary)'}}>SL {position.sl}</span>}
+              {position.tp!=null && <span style={{fontSize:'var(--text-xs)',color:'var(--text-tertiary)'}}>TP {position.tp}</span>}
+              <KitButton as="button" type="button" variant="secondary" size="sm" onClick={manualClose}>Close</KitButton>
             </div>
-          </div>}
+          : <div style={{display:'flex',gap:'8px',flexWrap:'wrap',alignItems:'center'}}>
+              <KitButton as="button" type="button" variant="emerald" onClick={()=>openPosition('Buy')}>Buy</KitButton>
+              <button type="button" onClick={()=>openPosition('Sell')}
+                style={{padding:'12px 22px',borderRadius:'var(--radius-md)',fontWeight:700,fontSize:'var(--text-sm)',cursor:'pointer',
+                  background:'var(--bearish-bg)',color:'var(--bearish)',border:'1px solid rgba(228,71,74,0.32)'}}>
+                Sell
+              </button>
+              <input type="number" placeholder="Size" style={{...CLIENT_INPUT_STYLE,width:'100px'}} value={sizeInput} onChange={e=>setSizeInput(e.target.value)}/>
+              <input type="number" step="any" placeholder="Stop loss" style={{...CLIENT_INPUT_STYLE,width:'110px'}} value={slInput} onChange={e=>setSlInput(e.target.value)}/>
+              <input type="number" step="any" placeholder="Take profit" style={{...CLIENT_INPUT_STYLE,width:'110px'}} value={tpInput} onChange={e=>setTpInput(e.target.value)}/>
+              <button type="button" onClick={suggestSize} disabled={slInput===''} title="Size from risk % and stop distance"
+                style={{padding:'12px 14px',borderRadius:'var(--radius-md)',fontSize:'var(--text-xs)',fontWeight:700,cursor:slInput===''?'not-allowed':'pointer',
+                  background:'var(--surface-inset)',border:'1px solid var(--border-default)',color:'var(--text-secondary)',opacity:slInput===''?0.5:1,whiteSpace:'nowrap'}}>
+                Suggest size
+              </button>
+            </div>}
+        <div style={{display:'flex',gap:'20px',flexWrap:'wrap'}}>
+          <div><div style={{fontSize:'var(--text-2xs)',textTransform:'uppercase',letterSpacing:'0.1em',color:'var(--text-muted)',fontWeight:700,marginBottom:'2px'}}>Balance</div><div style={{fontFamily:'var(--font-mono)',fontWeight:700}}>{fwgFormatMoney(balance)}</div></div>
+          <div><div style={{fontSize:'var(--text-2xs)',textTransform:'uppercase',letterSpacing:'0.1em',color:'var(--text-muted)',fontWeight:700,marginBottom:'2px'}}>Realized</div><div style={{fontFamily:'var(--font-mono)',fontWeight:700,color:realized>0?'var(--bullish)':realized<0?'var(--bearish)':'var(--text-primary)'}}>{fwgFormatMoney(realized)}</div></div>
+          <div><div style={{fontSize:'var(--text-2xs)',textTransform:'uppercase',letterSpacing:'0.1em',color:'var(--text-muted)',fontWeight:700,marginBottom:'2px'}}>Unrealized</div><div style={{fontFamily:'var(--font-mono)',fontWeight:700,color:unrealized>0?'var(--bullish)':unrealized<0?'var(--bearish)':'var(--text-primary)'}}>{position?fwgFormatMoney(unrealized):'—'}</div></div>
+        </div>
+      </div>
     </KitCard>
-    <p style={{fontSize:'var(--text-xs)',color:'var(--text-muted)',marginTop:'16px'}}>Chart data is a deterministic sample random walk generated for this workspace — it is not real market history, so results here don't validate a strategy against real trading. Trades you save go into your real Trading Journal tagged "BT".</p>
+
+    {closedTrades.length>0 && (
+      <p style={{fontSize:'var(--text-xs)',color:'var(--text-tertiary)',marginTop:'16px'}}>
+        {closedTrades.length} trade{closedTrades.length===1?'':'s'} closed this session
+        {Object.values(saveStatus).some(v=>v==='failed') ? <span style={{color:'var(--bearish)',fontWeight:700}}> — some couldn't save, check your connection</span> : ' — saved automatically'} to your <a href="/client/journal" style={{color:'var(--text-gold)',fontWeight:700,textDecoration:'none'}}>Trading Journal</a> (tagged "BT"), and already reflected on your Dashboard and Performance pages.
+      </p>
+    )}
+    <p style={{fontSize:'var(--text-xs)',color:'var(--text-muted)',marginTop:closedTrades.length>0?'8px':'16px'}}>Candles are real historical prices from Yahoo Finance, not simulated — free-tier lookback is limited (roughly 5 days of 15-minute bars, 3 months hourly, 1 year daily). Forex pairs report no real trade volume (OTC market), so the volume pane only shows for XAU/USD, sourced from COMEX gold-futures history.</p>
   </React.Fragment>;
 }
 
