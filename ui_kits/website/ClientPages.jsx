@@ -541,32 +541,58 @@ function ClientPerformancePage() {
 /* Backtesting: structure/UI only for now (per spec) — the replay engine
    connects to a real historical-data provider next; nothing on this page
    fabricates candles or prices in the meantime. */
-/* ---------- Backtesting: real historical data + replay engine ----------
+/* ---------- Backtesting: professional replay terminal ----------
    Candles come from GET /api/market-history (backend/services/
-   marketHistoryService.js), which pulls real historical OHLC from Yahoo
-   Finance's public chart API — the same trusted, keyless source already
-   used for the live spot quotes on the Markets page. This is genuine
-   market history, not synthetic data: forex pairs report no real trade
-   volume (OTC market), so the volume pane only renders for XAU/USD, which
-   is sourced from real COMEX gold-futures history (labeled as such, since
-   futures carry a small persistent premium over spot). Closed trades save
-   into the same `trades` table the Journal reads (source: 'backtest') —
-   that column and the Journal's "BT" badge were already built for exactly
-   this (see tradeService.js, ClientPages2.jsx). */
+   marketHistoryService.js), which pulls real historical OHLC — for an
+   explicit user-picked date range, or a sane default window — from Yahoo
+   Finance's public chart API, the same trusted keyless source already used
+   for the live spot quotes on the Markets page. This is genuine market
+   history, not synthetic data: forex pairs report no real trade volume
+   (OTC market), so the volume pane only renders for metals, sourced from
+   real COMEX futures history (labeled as such, since futures carry a small
+   persistent premium over spot). Closed trades save into the same `trades`
+   table the Journal reads (source: 'backtest') — that column and the
+   Journal's "BT" badge were already built for exactly this (see
+   tradeService.js, ClientPages2.jsx).
+
+   Drawing tools are scoped to what lightweight-charts' public v4 API can
+   genuinely anchor to real time/price — line series (trend line) and price
+   lines (horizontal line, Fibonacci retracement). Rectangle/brush/text/
+   arrow/parallel-channel/Fib-extension are NOT included: those need a
+   pixel-space overlay canvas (or TradingView's own paid Charting Library)
+   to render correctly, and faking them with a hack would look like a
+   drawing tool without behaving like one. */
 
 const BT_SYMBOLS = [
   { value:'XAUUSD', label:'XAU/USD', decimals:2 },
+  { value:'XAGUSD', label:'XAG/USD', decimals:3 },
   { value:'EURUSD', label:'EUR/USD', decimals:5 },
   { value:'GBPUSD', label:'GBP/USD', decimals:5 },
+  { value:'USDJPY', label:'USD/JPY', decimals:3 },
+  { value:'AUDUSD', label:'AUD/USD', decimals:5 },
+  { value:'USDCAD', label:'USD/CAD', decimals:5 },
+  { value:'USDCHF', label:'USD/CHF', decimals:5 },
 ];
 const BT_TIMEFRAMES = [
   { value:'M15', label:'15m' },
+  { value:'M30', label:'30m' },
   { value:'H1',  label:'1H' },
   { value:'H4',  label:'4H' },
   { value:'D1',  label:'1D' },
+  { value:'W1',  label:'1W' },
 ];
-const BT_SPEEDS = [1,2,4,8];
+const BT_SPEEDS = [0.25,0.5,1,2,4,8];
+const BT_FIB_LEVELS = [0,0.236,0.382,0.5,0.618,0.786,1];
+const BT_DRAW_COLOR = '#D6AF43'; // matches --gold-400, the site's accent
+const BT_DRAW_TOOLS = [
+  { id:'cursor', icon:'mouse-pointer-2', title:'Cursor' },
+  { id:'trendline', icon:'trending-up', title:'Trend line (click two points)' },
+  { id:'hline', icon:'minus', title:'Horizontal line (click one point)' },
+  { id:'fib', icon:'ruler', title:'Fibonacci retracement (click two points)' },
+];
 
+function fwgTodayStr() { return new Date().toISOString().slice(0,10); }
+function fwgDaysAgoStr(n) { return new Date(Date.now()-n*86400000).toISOString().slice(0,10); }
 function fwgVolBar(c) { return { time:c.time, value:c.volume, color: c.close>=c.open ? 'rgba(47,208,138,0.5)' : 'rgba(242,112,111,0.5)' }; }
 function fwgComputePnl(direction, entry, price, size) { return (direction==='Buy' ? (price-entry) : (entry-price)) * size; }
 function fwgMaxDrawdownFromEquity(points) {
@@ -587,10 +613,59 @@ function fwgBuildTradeRecord(pos, closeIndex, exitPrice, pnl, tag, dataset, symb
     result: pnl>0?'Win':pnl<0?'Loss':'Breakeven', riskReward:plannedRR, rMultiple, pnl:+pnl.toFixed(2), closedBy:tag,
   };
 }
+function fwgBtRequestFullscreen(el) { const fn = el.requestFullscreen || el.webkitRequestFullscreen; if (fn) fn.call(el); }
+function fwgBtExitFullscreen() { const fn = document.exitFullscreen || document.webkitExitFullscreen; if (fn) fn.call(document); }
+function fwgBtFullscreenElement() { return document.fullscreenElement || document.webkitFullscreenElement || null; }
+function fwgBtFullscreenSupported() { return !!(document.fullscreenEnabled || document.webkitFullscreenEnabled); }
+
+/* A compact searchable symbol picker — deliberately not hard-coded to one
+   instrument; BT_SYMBOLS above is the whole registry, so adding another
+   real ticker later is a one-line change in both this list and
+   marketHistoryService.js's YAHOO_SYMBOLS map. */
+function ClientSymbolCombobox({ value, onChange, options }) {
+  const [open, setOpen] = React.useState(false);
+  const [query, setQuery] = React.useState('');
+  const wrapRef = React.useRef(null);
+  const current = options.find(o=>o.value===value);
+
+  React.useEffect(() => {
+    const onDoc = (e) => { if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', onDoc);
+    return () => document.removeEventListener('mousedown', onDoc);
+  }, []);
+
+  const filtered = options.filter(o => (o.label+o.value).toLowerCase().includes(query.toLowerCase()));
+
+  return (
+    <div ref={wrapRef} style={{position:'relative'}}>
+      <button type="button" onClick={()=>{ setOpen(o=>!o); setQuery(''); }}
+        style={{...CLIENT_INPUT_STYLE,width:'150px',cursor:'pointer',display:'flex',justifyContent:'space-between',alignItems:'center',gap:'8px'}}>
+        <span style={{fontWeight:700}}>{current?current.label:value}</span>
+        <Icon name="chevron-down" size={14}/>
+      </button>
+      {open && (
+        <div style={{position:'absolute',top:'calc(100% + 6px)',left:0,zIndex:60,width:'220px',background:'var(--bg-elevated)',border:'1px solid var(--border-gold)',borderRadius:'var(--radius-md)',boxShadow:'var(--shadow-xl)',overflow:'hidden'}}>
+          <input autoFocus value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search symbol…"
+            style={{...CLIENT_INPUT_STYLE,borderRadius:0,border:'none',borderBottom:'1px solid var(--border-subtle)'}}/>
+          <div style={{maxHeight:'240px',overflowY:'auto'}}>
+            {filtered.length===0 && <div style={{padding:'12px',fontSize:'var(--text-xs)',color:'var(--text-muted)'}}>No matches.</div>}
+            {filtered.map(o=>(
+              <button key={o.value} type="button" onClick={()=>{ onChange(o.value); setOpen(false); }}
+                style={{display:'block',width:'100%',textAlign:'left',padding:'10px 14px',background:o.value===value?'var(--accent-soft-bg)':'transparent',border:'none',cursor:'pointer',color:o.value===value?'var(--text-gold)':'var(--text-primary)',fontSize:'var(--text-sm)',fontWeight:600}}>
+                {o.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 /* Isolates the imperative lightweight-charts instance from React's render
    cycle: created once on mount, then mutated via .setData()/.update() from
-   the parent's own effects instead of being torn down on every state change. */
+   the parent's own effects instead of being torn down on every state change.
+   Resizes on both axes so it can flex-fill the terminal in full-screen mode. */
 function ClientBacktestChartCanvas({ chartApiRef }) {
   const containerRef = React.useRef(null);
 
@@ -605,7 +680,7 @@ function ClientBacktestChartCanvas({ chartApiRef }) {
     const borderDefault = col('--border-default','rgba(255,255,255,0.10)');
 
     const chart = window.LightweightCharts.createChart(el, {
-      width: el.clientWidth, height: 440,
+      width: el.clientWidth, height: el.clientHeight || 460,
       layout: { background:{ type:'solid', color:'transparent' }, textColor:textTertiary, fontSize:11 },
       grid: { vertLines:{ color:borderSubtle }, horzLines:{ color:borderSubtle } },
       rightPriceScale: { borderColor:borderDefault },
@@ -618,27 +693,39 @@ function ClientBacktestChartCanvas({ chartApiRef }) {
     volumeSeries.priceScale().applyOptions({ scaleMargins:{ top:0.82, bottom:0 } });
 
     chartApiRef.current = { chart, candleSeries, volumeSeries };
-    const ro = new ResizeObserver(entries => { const w = entries[0].contentRect.width; if (w>0) chart.applyOptions({ width:w }); });
+    const ro = new ResizeObserver(entries => {
+      const { width, height } = entries[0].contentRect;
+      if (width>0 && height>0) chart.applyOptions({ width, height });
+    });
     ro.observe(el);
     return () => { ro.disconnect(); chart.remove(); chartApiRef.current = null; };
   }, []);
 
-  return <div ref={containerRef} style={{width:'100%',height:'440px'}}/>;
+  return <div ref={containerRef} style={{width:'100%',height:'100%'}}/>;
 }
 
 function ClientBacktestingPage() {
   const [symbolValue, setSymbolValue] = React.useState('XAUUSD');
   const [tfValue, setTfValue] = React.useState('H1');
+  const [fromDate, setFromDate] = React.useState(fwgDaysAgoStr(10));
+  const [toDate, setToDate] = React.useState(fwgTodayStr());
+  const [loadSeq, setLoadSeq] = React.useState(0);
+
   const [startingBalance, setStartingBalance] = React.useState('10000');
   const [riskPct, setRiskPct] = React.useState('1');
   const [accounts, setAccounts] = React.useState([]);
   const [accountId, setAccountId] = React.useState('');
   const [linkedStats, setLinkedStats] = React.useState(null);
 
-  const [history, setHistory] = React.useState({ status:'loading', candles:[], hasVolume:false, label:'', source:'' });
+  const [history, setHistory] = React.useState({ status:'loading', candles:[], hasVolume:false, label:'', source:'', error:'' });
   const [cursor, setCursor] = React.useState(0);
   const [playing, setPlaying] = React.useState(false);
   const [speed, setSpeed] = React.useState(1);
+  const [hoverIndex, setHoverIndex] = React.useState(null);
+
+  const [toolMode, setToolMode] = React.useState('cursor');
+  const [pendingHint, setPendingHint] = React.useState(false);
+  const [isFullscreen, setIsFullscreen] = React.useState(false);
 
   const [position, setPosition] = React.useState(null);
   const [sizeInput, setSizeInput] = React.useState('1000');
@@ -649,12 +736,22 @@ function ClientBacktestingPage() {
 
   const chartApiRef = React.useRef(null);
   const tradeSeqRef = React.useRef(0);
+  const terminalRef = React.useRef(null);
+  const toolModeRef = React.useRef('cursor');
+  const pendingAnchorRef = React.useRef(null);
+  const drawingsRef = React.useRef([]);
 
   const symbolMeta = BT_SYMBOLS.find(s=>s.value===symbolValue);
   const tfMeta = BT_TIMEFRAMES.find(t=>t.value===tfValue);
   const dataset = history.candles;
-  const preroll = dataset.length ? Math.max(5, Math.round(dataset.length*0.2)) : 0;
+  const preroll = dataset.length ? Math.min(3, dataset.length-1) : 0;
   const atEnd = dataset.length ? cursor >= dataset.length-1 : true;
+  const invalidRange = !fromDate || !toDate || fromDate >= toDate;
+
+  function clearDrawings() {
+    drawingsRef.current.forEach(d => { try { d.remove(); } catch (err) {} });
+    drawingsRef.current = [];
+  }
 
   React.useEffect(() => {
     (async () => {
@@ -666,26 +763,28 @@ function ClientBacktestingPage() {
     })();
   }, []);
 
-  // Real historical OHLC from Yahoo Finance (backend/services/marketHistoryService.js) — no sample/synthetic data.
+  // Real historical OHLC from Yahoo Finance, for the exact picked date range — only (re)loads when "Start Replay" is clicked.
   React.useEffect(() => {
     let cancelled = false;
-    setHistory(h => ({ ...h, status:'loading' }));
+    setHistory(h => ({ ...h, status:'loading', error:'' }));
     (async () => {
       try {
-        const res = await fetch(`${window.FWG_API_BASE}/api/market-history?symbol=${symbolValue}&timeframe=${tfValue}`);
+        const params = new URLSearchParams({ symbol:symbolValue, timeframe:tfValue, from:fromDate, to:toDate });
+        const res = await fetch(`${window.FWG_API_BASE}/api/market-history?${params.toString()}`);
         const data = await res.json().catch(()=>({}));
         if (cancelled) return;
         if (res.ok && data.success && data.candles && data.candles.length>1) {
-          setHistory({ status:'ready', candles:data.candles, hasVolume:!!data.hasVolume, label:data.label, source:data.source });
+          setHistory({ status:'ready', candles:data.candles, hasVolume:!!data.hasVolume, label:data.label, source:data.source, error:'' });
         } else {
-          setHistory({ status:'error', candles:[], hasVolume:false, label:'', source:'' });
+          setHistory({ status:'error', candles:[], hasVolume:false, label:'', source:'', error: data.message || 'Could not load historical data for that range.' });
         }
       } catch (err) {
-        if (!cancelled) setHistory({ status:'error', candles:[], hasVolume:false, label:'', source:'' });
+        if (!cancelled) setHistory({ status:'error', candles:[], hasVolume:false, label:'', source:'', error:"Couldn't reach the server." });
       }
     })();
     return () => { cancelled = true; };
-  }, [symbolValue, tfValue]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loadSeq]);
 
   /* Picking a real trading account here isn't just a label on saved trades:
      it seeds this session from that account's actual live balance (starting
@@ -708,15 +807,16 @@ function ClientBacktestingPage() {
     return () => { cancelled = true; };
   }, [accountId]);
 
-  // New data (symbol/timeframe) or a different linked account = a fresh session.
+  // New data or a different linked account = a fresh session; drawings are cleared since they were anchored to the old dataset.
   React.useEffect(() => {
-    setPlaying(false); setPosition(null); setClosedTrades([]); setSaveStatus({});
+    setPlaying(false); setPosition(null); setClosedTrades([]); setSaveStatus({}); setHoverIndex(null);
+    clearDrawings();
     if (!dataset.length) { setCursor(0); return; }
     setCursor(preroll);
     const api = chartApiRef.current;
     if (api) {
       api.candleSeries.applyOptions({ priceFormat: { type:'price', precision: symbolMeta.decimals, minMove: 1/Math.pow(10, symbolMeta.decimals) } });
-      const visible = dataset.slice(0, preroll);
+      const visible = dataset.slice(0, preroll+1);
       api.candleSeries.setData(visible);
       api.volumeSeries.setData(history.hasVolume ? visible.map(fwgVolBar) : []);
       api.chart.timeScale().fitContent();
@@ -766,6 +866,62 @@ function ClientBacktestingPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [playing, atEnd, cursor, speed, position, dataset]);
 
+  // Chart click handler for drawing tools, and crosshair-move for the OHLC readout — both registered once on the chart instance created by the child canvas.
+  React.useEffect(() => {
+    const api = chartApiRef.current;
+    if (!api) return;
+    const handleClick = (param) => {
+      if (!param.point || param.time == null) return;
+      const mode = toolModeRef.current;
+      if (mode === 'cursor') return;
+      const price = api.candleSeries.coordinateToPrice(param.point.y);
+      if (price == null) return;
+      const time = param.time;
+      if (mode === 'hline') {
+        const line = api.candleSeries.createPriceLine({ price, color:BT_DRAW_COLOR, lineWidth:1, lineStyle:2, axisLabelVisible:true, title:'' });
+        drawingsRef.current.push({ remove: () => api.candleSeries.removePriceLine(line) });
+        return;
+      }
+      const anchor = pendingAnchorRef.current;
+      if (!anchor) { pendingAnchorRef.current = { time, price }; setPendingHint(true); return; }
+      pendingAnchorRef.current = null; setPendingHint(false);
+      if (mode === 'trendline') {
+        const ls = api.chart.addLineSeries({ color:BT_DRAW_COLOR, lineWidth:2, priceLineVisible:false, lastValueVisible:false, crosshairMarkerVisible:false });
+        const pts = [{ time:anchor.time, value:anchor.price }, { time, value:price }].sort((a,b)=>a.time-b.time);
+        ls.setData(pts);
+        drawingsRef.current.push({ remove: () => api.chart.removeSeries(ls) });
+      } else if (mode === 'fib') {
+        const hi = Math.max(anchor.price, price), lo = Math.min(anchor.price, price);
+        const lines = BT_FIB_LEVELS.map(l => api.candleSeries.createPriceLine({
+          price: hi - (hi-lo)*l, color:BT_DRAW_COLOR, lineWidth:1, lineStyle:0, axisLabelVisible:true, title:`${(l*100).toFixed(1)}%`,
+        }));
+        drawingsRef.current.push({ remove: () => lines.forEach(ln => api.candleSeries.removePriceLine(ln)) });
+      }
+    };
+    const handleMove = (param) => {
+      if (!param.time) { setHoverIndex(null); return; }
+      const idx = dataset.findIndex(c => c.time === param.time);
+      setHoverIndex(idx>=0 ? idx : null);
+    };
+    api.chart.subscribeClick(handleClick);
+    api.chart.subscribeCrosshairMove(handleMove);
+    return () => { api.chart.unsubscribeClick(handleClick); api.chart.unsubscribeCrosshairMove(handleMove); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chartApiRef.current, dataset]);
+
+  React.useEffect(() => { toolModeRef.current = toolMode; pendingAnchorRef.current = null; setPendingHint(false); }, [toolMode]);
+
+  React.useEffect(() => {
+    const onChange = () => setIsFullscreen(fwgBtFullscreenElement() === terminalRef.current);
+    document.addEventListener('fullscreenchange', onChange);
+    document.addEventListener('webkitfullscreenchange', onChange);
+    return () => { document.removeEventListener('fullscreenchange', onChange); document.removeEventListener('webkitfullscreenchange', onChange); };
+  }, []);
+  function toggleFullscreen() {
+    if (fwgBtFullscreenElement() === terminalRef.current) fwgBtExitFullscreen();
+    else if (terminalRef.current) fwgBtRequestFullscreen(terminalRef.current);
+  }
+
   function openPosition(dir) {
     if (position || !accountId || !dataset.length) return;
     const entryPrice = dataset[cursor].close;
@@ -804,7 +960,7 @@ function ClientBacktestingPage() {
           date:trade.date, symbol:trade.symbol, direction:trade.direction, entry:trade.entry, exit:trade.exit,
           stopLoss:trade.stopLoss, takeProfit:trade.takeProfit, result:trade.result, riskReward:trade.riskReward,
           rMultiple:trade.rMultiple, pnl:trade.pnl, accountId, source:'backtest',
-          notes:`Backtesting session — ${symbolMeta.label} ${tfMeta.label}, real historical data (${history.source}), closed by ${trade.closedBy}.`,
+          notes:`Backtesting session — ${symbolMeta.label} ${tfMeta.label}, real historical data (${history.source}) ${fromDate}→${toDate}, closed by ${trade.closedBy}.`,
         }),
       });
       const data = await res.json().catch(()=>({}));
@@ -813,6 +969,12 @@ function ClientBacktestingPage() {
       setSaveStatus(s => ({ ...s, [trade.id]: 'failed' }));
     }
   }
+
+  const displayIndex = hoverIndex!=null ? hoverIndex : cursor;
+  const bar = dataset.length ? dataset[displayIndex] : null;
+  const prevBar = (bar && displayIndex>0) ? dataset[displayIndex-1] : null;
+  const change = (bar && prevBar) ? bar.close-prevBar.close : 0;
+  const changePct = (bar && prevBar && prevBar.close) ? (change/prevBar.close)*100 : 0;
 
   const currentPrice = dataset.length ? dataset[cursor].close : null;
   const realized = closedTrades.reduce((s,t)=>s+t.pnl, 0);
@@ -827,121 +989,187 @@ function ClientBacktestingPage() {
   }, [closedTrades, startingBalance]);
   const maxDrawdownPct = fwgMaxDrawdownFromEquity(equityPoints);
 
+  const chartAreaStyle = isFullscreen
+    ? { position:'relative', flex:1, minHeight:0, minWidth:0 }
+    : { position:'relative', flex:'0 0 480px', height:'480px', minWidth:0 };
+
   return <React.Fragment>
     <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:'12px',marginBottom:'20px'}}>
       <h1 style={{fontFamily:'var(--font-display)',fontWeight:800,fontSize:'var(--text-2xl)',letterSpacing:'var(--ls-tight)',margin:0}}>Backtesting</h1>
       <KitBadge tone="neutral" mono>Real historical data{history.source?` — ${history.source}`:''}</KitBadge>
     </div>
 
-    <KitCard padding="0" style={{overflow:'hidden'}}>
-      <div style={{padding:'14px 18px',borderBottom:'1px solid var(--border-subtle)',display:'flex',gap:'10px',flexWrap:'wrap',alignItems:'center',justifyContent:'space-between'}}>
-        <div style={{display:'flex',gap:'10px',flexWrap:'wrap',alignItems:'center'}}>
-          <select value={symbolValue} onChange={e=>setSymbolValue(e.target.value)} style={{...CLIENT_INPUT_STYLE,width:'auto',cursor:'pointer'}}>
-            {BT_SYMBOLS.map(s=>(<option key={s.value} value={s.value}>{s.label}</option>))}
+    <div ref={terminalRef} style={isFullscreen ? { width:'100%', height:'100%', background:'var(--bg-base)', display:'flex', flexDirection:'column' } : undefined}>
+      <KitCard padding="0" style={{ overflow:'hidden', ...(isFullscreen ? { flex:1, display:'flex', flexDirection:'column', minHeight:0, borderRadius:0 } : {}) }}>
+
+        {/* Top bar: symbol, timeframe, date range, fullscreen */}
+        <div style={{padding:'12px 16px',borderBottom:'1px solid var(--border-subtle)',display:'flex',gap:'10px',flexWrap:'wrap',alignItems:'center',justifyContent:'space-between'}}>
+          <div style={{display:'flex',gap:'10px',flexWrap:'wrap',alignItems:'center'}}>
+            <ClientSymbolCombobox value={symbolValue} onChange={setSymbolValue} options={BT_SYMBOLS}/>
+            <div style={{display:'flex',gap:'4px',flexWrap:'wrap'}}>
+              {BT_TIMEFRAMES.map(tf=>{
+                const on = tf.value===tfValue;
+                return <button key={tf.value} type="button" onClick={()=>setTfValue(tf.value)}
+                  style={{padding:'9px 12px',borderRadius:'var(--radius-md)',cursor:'pointer',fontSize:'var(--text-xs)',fontWeight:700,
+                    border:`1px solid ${on?'var(--border-gold)':'var(--border-default)'}`,
+                    background:on?'var(--accent-soft-bg)':'var(--surface-inset)',color:on?'var(--text-gold)':'var(--text-secondary)'}}>
+                  {tf.label}
+                </button>;
+              })}
+            </div>
+          </div>
+          <div style={{display:'flex',gap:'8px',flexWrap:'wrap',alignItems:'center'}}>
+            <input type="date" value={fromDate} max={toDate} onChange={e=>setFromDate(e.target.value)} style={{...CLIENT_INPUT_STYLE,width:'auto'}}/>
+            <span style={{color:'var(--text-muted)',fontSize:'var(--text-xs)'}}>→</span>
+            <input type="date" value={toDate} min={fromDate} onChange={e=>setToDate(e.target.value)} style={{...CLIENT_INPUT_STYLE,width:'auto'}}/>
+            <button type="button" onClick={()=>setToDate(fwgTodayStr())} title="Use today as end date"
+              style={{padding:'8px 12px',borderRadius:'var(--radius-md)',fontSize:'var(--text-xs)',fontWeight:700,cursor:'pointer',background:'var(--surface-inset)',border:'1px solid var(--border-default)',color:'var(--text-secondary)'}}>
+              Today
+            </button>
+            <KitButton as="button" type="button" variant="primary" size="sm" disabled={invalidRange} onClick={()=>setLoadSeq(s=>s+1)}>Start Replay</KitButton>
+            <button type="button" onClick={toggleFullscreen} title={isFullscreen?'Exit full screen':'Full screen'}
+              style={{width:'34px',height:'34px',borderRadius:'var(--radius-md)',background:'var(--surface-inset)',border:'1px solid var(--border-default)',color:'var(--text-secondary)',display:'inline-flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}>
+              <Icon name={isFullscreen?'minimize':'maximize'} size={16}/>
+            </button>
+          </div>
+        </div>
+        {invalidRange && <div style={{padding:'6px 16px',fontSize:'var(--text-2xs)',color:'var(--bearish)',borderBottom:'1px solid var(--border-subtle)'}}>Start date must be before end date.</div>}
+
+        {/* Trading account — required to trade */}
+        <div style={{padding:'10px 16px',borderBottom:'1px solid var(--border-subtle)',display:'flex',gap:'12px',flexWrap:'wrap',alignItems:'center',background:'var(--surface-inset)'}}>
+          <span style={{fontSize:'var(--text-2xs)',textTransform:'uppercase',letterSpacing:'0.1em',color:'var(--text-muted)',fontWeight:700,whiteSpace:'nowrap'}}>Trading account</span>
+          <select value={accountId} onChange={e=>setAccountId(e.target.value)} style={{...CLIENT_INPUT_STYLE,width:'auto',minWidth:'220px',cursor:'pointer'}}>
+            <option value="">{accounts.length ? 'Select an account to start trading' : 'No trading accounts yet'}</option>
+            {accounts.map(a=>(<option key={a.id} value={String(a.id)}>{a.name}</option>))}
           </select>
-          <div style={{display:'flex',gap:'6px'}}>
-            {BT_TIMEFRAMES.map(tf=>{
-              const on = tf.value===tfValue;
-              return <button key={tf.value} type="button" onClick={()=>setTfValue(tf.value)}
-                style={{padding:'9px 14px',borderRadius:'var(--radius-md)',cursor:'pointer',fontSize:'var(--text-xs)',fontWeight:700,
-                  border:`1px solid ${on?'var(--border-gold)':'var(--border-default)'}`,
-                  background:on?'var(--accent-soft-bg)':'var(--surface-inset)',color:on?'var(--text-gold)':'var(--text-secondary)'}}>
-                {tf.label}
+          {accounts.length===0 && <span style={{fontSize:'var(--text-xs)',color:'var(--text-tertiary)'}}>
+            <a href="/client/accounts" style={{color:'var(--text-gold)',fontWeight:700,textDecoration:'none'}}>Create a trading account</a> first — every backtest trade needs one to save against.
+          </span>}
+          {linkedStats && <span style={{fontSize:'var(--text-xs)',color:'var(--text-tertiary)'}}>
+            Live balance <strong style={{color:'var(--text-gold)',fontFamily:'var(--font-mono)'}}>{fwgFormatMoney(linkedStats.accountBalance)}</strong> from {linkedStats.totalTrades} real trade{linkedStats.totalTrades===1?'':'s'} — every trade you close here saves straight into it.
+          </span>}
+          {linkedStats && linkedStats.maxDrawdownLimitPct!=null && maxDrawdownPct>linkedStats.maxDrawdownLimitPct && (
+            <span style={{fontSize:'var(--text-xs)',color:'var(--bearish)',fontWeight:700}}>
+              This session has breached {linkedStats.name}'s {linkedStats.maxDrawdownLimitPct}% max drawdown limit ({fwgFormatPct(maxDrawdownPct)}).
+            </span>
+          )}
+        </div>
+
+        {/* OHLC readout strip */}
+        <div style={{padding:'8px 16px',borderBottom:'1px solid var(--border-subtle)',display:'flex',gap:'16px',flexWrap:'wrap',alignItems:'center',fontFamily:'var(--font-mono)',fontSize:'var(--text-xs)'}}>
+          {history.status==='loading' && <span style={{color:'var(--text-muted)'}}>Loading historical data…</span>}
+          {history.status==='error' && <span style={{color:'var(--bearish)'}}>{history.error}</span>}
+          {history.status==='ready' && bar && (<React.Fragment>
+            <span style={{color:'var(--text-muted)'}}>O <b style={{color:'var(--text-primary)'}}>{bar.open.toFixed(symbolMeta.decimals)}</b></span>
+            <span style={{color:'var(--text-muted)'}}>H <b style={{color:'var(--text-primary)'}}>{bar.high.toFixed(symbolMeta.decimals)}</b></span>
+            <span style={{color:'var(--text-muted)'}}>L <b style={{color:'var(--text-primary)'}}>{bar.low.toFixed(symbolMeta.decimals)}</b></span>
+            <span style={{color:'var(--text-muted)'}}>C <b style={{color:change>=0?'var(--bullish)':'var(--bearish)'}}>{bar.close.toFixed(symbolMeta.decimals)}</b></span>
+            <span style={{color:change>=0?'var(--bullish)':'var(--bearish)',fontWeight:700}}>{change>=0?'+':''}{change.toFixed(symbolMeta.decimals)} ({changePct>=0?'+':''}{changePct.toFixed(2)}%)</span>
+            {history.hasVolume && <span style={{color:'var(--text-muted)'}}>Vol <b style={{color:'var(--text-primary)'}}>{bar.volume.toLocaleString()}</b></span>}
+            <span style={{color:'var(--text-tertiary)'}}>{new Date(bar.time*1000).toLocaleString([], { month:'short', day:'numeric', year:'numeric', hour:'2-digit', minute:'2-digit' })}</span>
+            <span style={{color:'var(--text-muted)'}}>{tfMeta.label}</span>
+          </React.Fragment>)}
+        </div>
+
+        {/* Drawing rail + chart */}
+        <div style={{display:'flex',flex:isFullscreen?1:undefined,minHeight:0}}>
+          <div style={{display:'flex',flexDirection:'column',gap:'6px',padding:'10px 8px',borderRight:'1px solid var(--border-subtle)',flexShrink:0}}>
+            {BT_DRAW_TOOLS.map(t=>{
+              const on = toolMode===t.id;
+              return <button key={t.id} type="button" title={t.title} onClick={()=>setToolMode(t.id)}
+                style={{width:'34px',height:'34px',borderRadius:'var(--radius-md)',display:'inline-flex',alignItems:'center',justifyContent:'center',cursor:'pointer',
+                  background:on?'var(--accent-soft-bg)':'var(--surface-inset)',border:`1px solid ${on?'var(--border-gold)':'var(--border-default)'}`,color:on?'var(--text-gold)':'var(--text-secondary)'}}>
+                <Icon name={t.icon} size={16}/>
               </button>;
             })}
+            <div style={{height:'1px',background:'var(--border-subtle)',margin:'4px 0'}}/>
+            <button type="button" title="Clear all drawings" onClick={clearDrawings}
+              style={{width:'34px',height:'34px',borderRadius:'var(--radius-md)',display:'inline-flex',alignItems:'center',justifyContent:'center',cursor:'pointer',background:'var(--surface-inset)',border:'1px solid var(--border-default)',color:'var(--text-secondary)'}}>
+              <Icon name="trash-2" size={16}/>
+            </button>
+          </div>
+
+          <div style={chartAreaStyle}>
+            {pendingHint && (
+              <div style={{position:'absolute',top:'10px',left:'50%',transform:'translateX(-50%)',zIndex:20,padding:'6px 14px',borderRadius:'var(--radius-pill)',background:'var(--accent-soft-bg)',border:'1px solid var(--border-gold)',color:'var(--text-gold)',fontSize:'var(--text-xs)',fontWeight:700}}>
+                Click the second point…
+              </div>
+            )}
+            {history.status==='error'
+              ? <div style={{height:'100%',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',background:'#0d1019'}}>
+                  <Icon name="wifi-off" size={28} color="var(--text-muted)"/>
+                  <p style={{fontSize:'var(--text-sm)',color:'var(--text-tertiary)',marginTop:'12px',maxWidth:'50ch',textAlign:'center',padding:'0 20px'}}>{history.error}</p>
+                </div>
+              : <ClientBacktestChartCanvas chartApiRef={chartApiRef}/>}
           </div>
         </div>
-        <div style={{fontFamily:'var(--font-mono)',fontSize:'var(--text-md)',fontWeight:700}}>
-          {history.status==='loading' ? <span style={{color:'var(--text-muted)',fontSize:'var(--text-sm)'}}>Loading…</span> : currentPrice!=null ? currentPrice.toFixed(symbolMeta.decimals) : '—'}
-        </div>
-      </div>
 
-      <div style={{padding:'12px 18px',borderBottom:'1px solid var(--border-subtle)',display:'flex',gap:'12px',flexWrap:'wrap',alignItems:'center',background:'var(--surface-inset)'}}>
-        <span style={{fontSize:'var(--text-2xs)',textTransform:'uppercase',letterSpacing:'0.1em',color:'var(--text-muted)',fontWeight:700,whiteSpace:'nowrap'}}>Trading account</span>
-        <select value={accountId} onChange={e=>setAccountId(e.target.value)} style={{...CLIENT_INPUT_STYLE,width:'auto',minWidth:'220px',cursor:'pointer'}}>
-          <option value="">{accounts.length ? 'Select an account to start trading' : 'No trading accounts yet'}</option>
-          {accounts.map(a=>(<option key={a.id} value={String(a.id)}>{a.name}</option>))}
-        </select>
-        {accounts.length===0 && <span style={{fontSize:'var(--text-xs)',color:'var(--text-tertiary)'}}>
-          <a href="/client/accounts" style={{color:'var(--text-gold)',fontWeight:700,textDecoration:'none'}}>Create a trading account</a> first — every backtest trade needs one to save against.
-        </span>}
-        {linkedStats && <span style={{fontSize:'var(--text-xs)',color:'var(--text-tertiary)'}}>
-          Live balance <strong style={{color:'var(--text-gold)',fontFamily:'var(--font-mono)'}}>{fwgFormatMoney(linkedStats.accountBalance)}</strong> from {linkedStats.totalTrades} real trade{linkedStats.totalTrades===1?'':'s'} — every trade you close here saves straight into it.
-        </span>}
-        {linkedStats && linkedStats.maxDrawdownLimitPct!=null && maxDrawdownPct>linkedStats.maxDrawdownLimitPct && (
-          <span style={{fontSize:'var(--text-xs)',color:'var(--bearish)',fontWeight:700}}>
-            This session has breached {linkedStats.name}'s {linkedStats.maxDrawdownLimitPct}% max drawdown limit ({fwgFormatPct(maxDrawdownPct)}).
+        {/* Replay controls + timeline */}
+        <div style={{padding:'12px 16px',borderTop:'1px solid var(--border-subtle)',display:'flex',gap:'10px',alignItems:'center',flexWrap:'wrap'}}>
+          <button type="button" onClick={()=>revealTo(preroll)} disabled={!dataset.length} title="Reset to replay start"
+            style={{width:'36px',height:'36px',borderRadius:'var(--radius-md)',background:'var(--surface-inset)',border:'1px solid var(--border-default)',color:'var(--text-secondary)',display:'inline-flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}>
+            <Icon name="skip-back" size={15}/>
+          </button>
+          <button type="button" onClick={()=>setPlaying(p=>!p)} disabled={atEnd} title={playing?'Pause':'Play'}
+            style={{width:'36px',height:'36px',borderRadius:'var(--radius-md)',background:playing?'var(--accent-soft-bg)':'var(--surface-inset)',border:`1px solid ${playing?'var(--border-gold)':'var(--border-default)'}`,color:playing?'var(--text-gold)':'var(--text-secondary)',display:'inline-flex',alignItems:'center',justifyContent:'center',cursor:atEnd?'not-allowed':'pointer',opacity:atEnd?0.5:1}}>
+            <Icon name={playing?'pause':'play'} size={15}/>
+          </button>
+          <button type="button" onClick={()=>{ setPlaying(false); revealTo(cursor+1); }} disabled={atEnd} title="Step forward one candle"
+            style={{width:'36px',height:'36px',borderRadius:'var(--radius-md)',background:'var(--surface-inset)',border:'1px solid var(--border-default)',color:'var(--text-secondary)',display:'inline-flex',alignItems:'center',justifyContent:'center',cursor:atEnd?'not-allowed':'pointer',opacity:atEnd?0.5:1}}>
+            <Icon name="skip-forward" size={15}/>
+          </button>
+          <select value={speed} onChange={e=>setSpeed(Number(e.target.value))} style={{...CLIENT_INPUT_STYLE,width:'auto',cursor:'pointer'}}>
+            {BT_SPEEDS.map(s=>(<option key={s} value={s}>{s}x</option>))}
+          </select>
+          <input type="range" min={preroll} max={Math.max(preroll,dataset.length-1)} value={cursor} disabled={!dataset.length} onChange={e=>{ setPlaying(false); revealTo(Number(e.target.value)); }}
+            style={{flex:1,minWidth:'140px',accentColor:'var(--accent)'}}/>
+          <span style={{fontFamily:'var(--font-mono)',fontSize:'var(--text-xs)',color:'var(--text-gold)',fontWeight:700,whiteSpace:'nowrap'}}>
+            {dataset.length ? new Date(dataset[cursor].time*1000).toLocaleString([], { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' }) : '—'}
           </span>
-        )}
-      </div>
-
-      {history.label && history.label!==symbolMeta.label && (
-        <div style={{padding:'8px 18px',borderBottom:'1px solid var(--border-subtle)',fontSize:'var(--text-2xs)',color:'var(--text-muted)'}}>{history.label}</div>
-      )}
-
-      {history.status==='error'
-        ? <div style={{padding:'60px 20px',textAlign:'center',background:'#0d1019'}}>
-            <Icon name="wifi-off" size={28} color="var(--text-muted)"/>
-            <p style={{fontSize:'var(--text-sm)',color:'var(--text-tertiary)',marginTop:'12px'}}>Couldn't load historical data for {symbolMeta.label} right now. Try a different symbol/timeframe or refresh.</p>
-          </div>
-        : <ClientBacktestChartCanvas chartApiRef={chartApiRef}/>}
-
-      <div style={{padding:'14px 18px',borderTop:'1px solid var(--border-subtle)',display:'flex',gap:'10px',alignItems:'center',flexWrap:'wrap'}}>
-        <button type="button" onClick={()=>revealTo(preroll)} disabled={!dataset.length} title="Back to start"
-          style={{width:'38px',height:'38px',borderRadius:'var(--radius-md)',background:'var(--surface-inset)',border:'1px solid var(--border-default)',color:'var(--text-secondary)',display:'inline-flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}>
-          <Icon name="skip-back" size={16}/>
-        </button>
-        <button type="button" onClick={()=>setPlaying(p=>!p)} disabled={atEnd} title={playing?'Pause':'Play'}
-          style={{width:'38px',height:'38px',borderRadius:'var(--radius-md)',background:playing?'var(--accent-soft-bg)':'var(--surface-inset)',border:`1px solid ${playing?'var(--border-gold)':'var(--border-default)'}`,color:playing?'var(--text-gold)':'var(--text-secondary)',display:'inline-flex',alignItems:'center',justifyContent:'center',cursor:atEnd?'not-allowed':'pointer',opacity:atEnd?0.5:1}}>
-          <Icon name={playing?'pause':'play'} size={16}/>
-        </button>
-        <button type="button" onClick={()=>{ setPlaying(false); revealTo(cursor+1); }} disabled={atEnd} title="Step forward one candle"
-          style={{width:'38px',height:'38px',borderRadius:'var(--radius-md)',background:'var(--surface-inset)',border:'1px solid var(--border-default)',color:'var(--text-secondary)',display:'inline-flex',alignItems:'center',justifyContent:'center',cursor:atEnd?'not-allowed':'pointer',opacity:atEnd?0.5:1}}>
-          <Icon name="skip-forward" size={16}/>
-        </button>
-        <select value={speed} onChange={e=>setSpeed(Number(e.target.value))} style={{...CLIENT_INPUT_STYLE,width:'auto',cursor:'pointer'}}>
-          {BT_SPEEDS.map(s=>(<option key={s} value={s}>{s}x</option>))}
-        </select>
-        <input type="range" min={preroll} max={Math.max(preroll,dataset.length-1)} value={cursor} disabled={!dataset.length} onChange={e=>{ setPlaying(false); revealTo(Number(e.target.value)); }}
-          style={{flex:1,minWidth:'140px',accentColor:'var(--accent)'}}/>
-        <span style={{fontFamily:'var(--font-mono)',fontSize:'var(--text-xs)',color:'var(--text-muted)',whiteSpace:'nowrap'}}>{dataset.length ? `${cursor-preroll+1} / ${dataset.length-preroll}` : '—'}</span>
-      </div>
-
-      <div style={{padding:'14px 18px',borderTop:'1px solid var(--border-subtle)',display:'flex',flexWrap:'wrap',gap:'12px',alignItems:'center',justifyContent:'space-between'}}>
-        {!accountId
-          ? <span style={{fontSize:'var(--text-sm)',color:'var(--text-tertiary)'}}>Select a trading account above to start trading.</span>
-          : history.status!=='ready'
-          ? <span style={{fontSize:'var(--text-sm)',color:'var(--text-tertiary)'}}>{history.status==='loading' ? 'Loading historical data…' : 'Historical data unavailable right now.'}</span>
-          : position
-          ? <div style={{display:'flex',alignItems:'center',gap:'12px',flexWrap:'wrap'}}>
-              <span style={{fontSize:'var(--text-sm)',fontWeight:700,color:position.direction==='Buy'?'var(--bullish)':'var(--bearish)'}}>{position.direction} @ {position.entry.toFixed(symbolMeta.decimals)}</span>
-              {position.sl!=null && <span style={{fontSize:'var(--text-xs)',color:'var(--text-tertiary)'}}>SL {position.sl}</span>}
-              {position.tp!=null && <span style={{fontSize:'var(--text-xs)',color:'var(--text-tertiary)'}}>TP {position.tp}</span>}
-              <KitButton as="button" type="button" variant="secondary" size="sm" onClick={manualClose}>Close</KitButton>
-            </div>
-          : <div style={{display:'flex',gap:'8px',flexWrap:'wrap',alignItems:'center'}}>
-              <KitButton as="button" type="button" variant="emerald" onClick={()=>openPosition('Buy')}>Buy</KitButton>
-              <button type="button" onClick={()=>openPosition('Sell')}
-                style={{padding:'12px 22px',borderRadius:'var(--radius-md)',fontWeight:700,fontSize:'var(--text-sm)',cursor:'pointer',
-                  background:'var(--bearish-bg)',color:'var(--bearish)',border:'1px solid rgba(228,71,74,0.32)'}}>
-                Sell
-              </button>
-              <input type="number" placeholder="Size" style={{...CLIENT_INPUT_STYLE,width:'100px'}} value={sizeInput} onChange={e=>setSizeInput(e.target.value)}/>
-              <input type="number" step="any" placeholder="Stop loss" style={{...CLIENT_INPUT_STYLE,width:'110px'}} value={slInput} onChange={e=>setSlInput(e.target.value)}/>
-              <input type="number" step="any" placeholder="Take profit" style={{...CLIENT_INPUT_STYLE,width:'110px'}} value={tpInput} onChange={e=>setTpInput(e.target.value)}/>
-              <button type="button" onClick={suggestSize} disabled={slInput===''} title="Size from risk % and stop distance"
-                style={{padding:'12px 14px',borderRadius:'var(--radius-md)',fontSize:'var(--text-xs)',fontWeight:700,cursor:slInput===''?'not-allowed':'pointer',
-                  background:'var(--surface-inset)',border:'1px solid var(--border-default)',color:'var(--text-secondary)',opacity:slInput===''?0.5:1,whiteSpace:'nowrap'}}>
-                Suggest size
-              </button>
-            </div>}
-        <div style={{display:'flex',gap:'20px',flexWrap:'wrap'}}>
-          <div><div style={{fontSize:'var(--text-2xs)',textTransform:'uppercase',letterSpacing:'0.1em',color:'var(--text-muted)',fontWeight:700,marginBottom:'2px'}}>Balance</div><div style={{fontFamily:'var(--font-mono)',fontWeight:700}}>{fwgFormatMoney(balance)}</div></div>
-          <div><div style={{fontSize:'var(--text-2xs)',textTransform:'uppercase',letterSpacing:'0.1em',color:'var(--text-muted)',fontWeight:700,marginBottom:'2px'}}>Realized</div><div style={{fontFamily:'var(--font-mono)',fontWeight:700,color:realized>0?'var(--bullish)':realized<0?'var(--bearish)':'var(--text-primary)'}}>{fwgFormatMoney(realized)}</div></div>
-          <div><div style={{fontSize:'var(--text-2xs)',textTransform:'uppercase',letterSpacing:'0.1em',color:'var(--text-muted)',fontWeight:700,marginBottom:'2px'}}>Unrealized</div><div style={{fontFamily:'var(--font-mono)',fontWeight:700,color:unrealized>0?'var(--bullish)':unrealized<0?'var(--bearish)':'var(--text-primary)'}}>{position?fwgFormatMoney(unrealized):'—'}</div></div>
         </div>
-      </div>
-    </KitCard>
+        <div style={{display:'flex',justifyContent:'space-between',padding:'0 16px 10px',fontSize:'var(--text-2xs)',color:'var(--text-muted)'}}>
+          <span>{fromDate}</span>
+          <span>{dataset.length ? `${cursor-preroll+1} / ${dataset.length-preroll}` : ''}</span>
+          <span>{toDate}</span>
+        </div>
+
+        {/* Trading + stats */}
+        <div style={{padding:'12px 16px',borderTop:'1px solid var(--border-subtle)',display:'flex',flexWrap:'wrap',gap:'12px',alignItems:'center',justifyContent:'space-between'}}>
+          {!accountId
+            ? <span style={{fontSize:'var(--text-sm)',color:'var(--text-tertiary)'}}>Select a trading account above to start trading.</span>
+            : history.status!=='ready'
+            ? <span style={{fontSize:'var(--text-sm)',color:'var(--text-tertiary)'}}>{history.status==='loading' ? 'Loading historical data…' : 'Historical data unavailable — pick a different range.'}</span>
+            : position
+            ? <div style={{display:'flex',alignItems:'center',gap:'12px',flexWrap:'wrap'}}>
+                <span style={{fontSize:'var(--text-sm)',fontWeight:700,color:position.direction==='Buy'?'var(--bullish)':'var(--bearish)'}}>{position.direction} @ {position.entry.toFixed(symbolMeta.decimals)}</span>
+                {position.sl!=null && <span style={{fontSize:'var(--text-xs)',color:'var(--text-tertiary)'}}>SL {position.sl}</span>}
+                {position.tp!=null && <span style={{fontSize:'var(--text-xs)',color:'var(--text-tertiary)'}}>TP {position.tp}</span>}
+                <KitButton as="button" type="button" variant="secondary" size="sm" onClick={manualClose}>Close</KitButton>
+              </div>
+            : <div style={{display:'flex',gap:'8px',flexWrap:'wrap',alignItems:'center'}}>
+                <KitButton as="button" type="button" variant="emerald" onClick={()=>openPosition('Buy')}>Buy</KitButton>
+                <button type="button" onClick={()=>openPosition('Sell')}
+                  style={{padding:'12px 22px',borderRadius:'var(--radius-md)',fontWeight:700,fontSize:'var(--text-sm)',cursor:'pointer',
+                    background:'var(--bearish-bg)',color:'var(--bearish)',border:'1px solid rgba(228,71,74,0.32)'}}>
+                  Sell
+                </button>
+                <input type="number" placeholder="Size" style={{...CLIENT_INPUT_STYLE,width:'100px'}} value={sizeInput} onChange={e=>setSizeInput(e.target.value)}/>
+                <input type="number" step="any" placeholder="Stop loss" style={{...CLIENT_INPUT_STYLE,width:'110px'}} value={slInput} onChange={e=>setSlInput(e.target.value)}/>
+                <input type="number" step="any" placeholder="Take profit" style={{...CLIENT_INPUT_STYLE,width:'110px'}} value={tpInput} onChange={e=>setTpInput(e.target.value)}/>
+                <button type="button" onClick={suggestSize} disabled={slInput===''} title="Size from risk % and stop distance"
+                  style={{padding:'12px 14px',borderRadius:'var(--radius-md)',fontSize:'var(--text-xs)',fontWeight:700,cursor:slInput===''?'not-allowed':'pointer',
+                    background:'var(--surface-inset)',border:'1px solid var(--border-default)',color:'var(--text-secondary)',opacity:slInput===''?0.5:1,whiteSpace:'nowrap'}}>
+                  Suggest size
+                </button>
+              </div>}
+          <div style={{display:'flex',gap:'20px',flexWrap:'wrap'}}>
+            <div><div style={{fontSize:'var(--text-2xs)',textTransform:'uppercase',letterSpacing:'0.1em',color:'var(--text-muted)',fontWeight:700,marginBottom:'2px'}}>Balance</div><div style={{fontFamily:'var(--font-mono)',fontWeight:700}}>{fwgFormatMoney(balance)}</div></div>
+            <div><div style={{fontSize:'var(--text-2xs)',textTransform:'uppercase',letterSpacing:'0.1em',color:'var(--text-muted)',fontWeight:700,marginBottom:'2px'}}>Realized</div><div style={{fontFamily:'var(--font-mono)',fontWeight:700,color:realized>0?'var(--bullish)':realized<0?'var(--bearish)':'var(--text-primary)'}}>{fwgFormatMoney(realized)}</div></div>
+            <div><div style={{fontSize:'var(--text-2xs)',textTransform:'uppercase',letterSpacing:'0.1em',color:'var(--text-muted)',fontWeight:700,marginBottom:'2px'}}>Unrealized</div><div style={{fontFamily:'var(--font-mono)',fontWeight:700,color:unrealized>0?'var(--bullish)':unrealized<0?'var(--bearish)':'var(--text-primary)'}}>{position?fwgFormatMoney(unrealized):'—'}</div></div>
+          </div>
+        </div>
+      </KitCard>
+    </div>
 
     {closedTrades.length>0 && (
       <p style={{fontSize:'var(--text-xs)',color:'var(--text-tertiary)',marginTop:'16px'}}>
@@ -949,7 +1177,7 @@ function ClientBacktestingPage() {
         {Object.values(saveStatus).some(v=>v==='failed') ? <span style={{color:'var(--bearish)',fontWeight:700}}> — some couldn't save, check your connection</span> : ' — saved automatically'} to your <a href="/client/journal" style={{color:'var(--text-gold)',fontWeight:700,textDecoration:'none'}}>Trading Journal</a> (tagged "BT"), and already reflected on your Dashboard and Performance pages.
       </p>
     )}
-    <p style={{fontSize:'var(--text-xs)',color:'var(--text-muted)',marginTop:closedTrades.length>0?'8px':'16px'}}>Candles are real historical prices from Yahoo Finance, not simulated — free-tier lookback is limited (roughly 5 days of 15-minute bars, 3 months hourly, 1 year daily). Forex pairs report no real trade volume (OTC market), so the volume pane only shows for XAU/USD, sourced from COMEX gold-futures history.</p>
+    <p style={{fontSize:'var(--text-xs)',color:'var(--text-muted)',marginTop:closedTrades.length>0?'8px':'16px'}}>Candles are real historical prices from Yahoo Finance for the date range you pick, not simulated. Each timeframe has a real lookback limit (roughly 60 days for 15m/30m, ~2 years for 1H/4H, no practical limit for 1D/1W). Forex pairs report no real trade volume (OTC market), so the volume pane only shows for metals, sourced from COMEX futures history.</p>
   </React.Fragment>;
 }
 
