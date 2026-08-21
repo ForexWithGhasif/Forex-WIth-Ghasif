@@ -5,7 +5,10 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const SALT_ROUNDS = 10;
 
 function toSafeUser(row) {
-  return { id: row.id, fullName: row.full_name, email: row.email, createdAt: row.created_at };
+  return {
+    id: row.id, fullName: row.full_name, email: row.email, createdAt: row.created_at,
+    startingBalance: row.starting_balance === undefined || row.starting_balance === null ? null : Number(row.starting_balance),
+  };
 }
 
 function validateSignup({ fullName, email, password, confirmPassword }) {
@@ -41,7 +44,7 @@ async function registerUser({ fullName, email, password, confirmPassword }) {
 
   const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
   const result = await db.query(
-    'INSERT INTO users (full_name, email, password_hash) VALUES ($1, $2, $3) RETURNING id, full_name, email, created_at',
+    'INSERT INTO users (full_name, email, password_hash) VALUES ($1, $2, $3) RETURNING id, full_name, email, created_at, starting_balance',
     [fullName.trim(), cleanEmail, passwordHash]
   );
   return toSafeUser(result.rows[0]);
@@ -71,7 +74,7 @@ async function loginUser({ email, password }) {
 }
 
 async function getUserById(id) {
-  const result = await db.query('SELECT id, full_name, email, created_at FROM users WHERE id = $1', [id]);
+  const result = await db.query('SELECT id, full_name, email, created_at, starting_balance FROM users WHERE id = $1', [id]);
   if (!result.rows.length) return null;
   return toSafeUser(result.rows[0]);
 }

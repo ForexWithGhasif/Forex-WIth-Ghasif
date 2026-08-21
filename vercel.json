@@ -19,6 +19,7 @@
     { "source": "/client/backtesting", "destination": "/ui_kits/website/client/backtesting.html" },
     { "source": "/client/journal", "destination": "/ui_kits/website/client/journal.html" },
     { "source": "/client/performance", "destination": "/ui_kits/website/client/performance.html" },
-    { "source": "/client/settings", "destination": "/ui_kits/website/client/settings.html" }
+    { "source": "/client/settings", "destination": "/ui_kits/website/client/settings.html" },
+    { "source": "/client/trading-plan", "destination": "/ui_kits/website/client/trading-plan.html" }
   ]
 }

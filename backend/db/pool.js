@@ -43,8 +43,25 @@ async function ensureSchema() {
         full_name TEXT NOT NULL,
         email TEXT UNIQUE NOT NULL,
         password_hash TEXT NOT NULL,
+        starting_balance NUMERIC,
         created_at TIMESTAMPTZ NOT NULL DEFAULT now()
       );
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS starting_balance NUMERIC;
+
+      CREATE TABLE IF NOT EXISTS trades (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        trade_date DATE NOT NULL,
+        symbol TEXT NOT NULL,
+        direction TEXT NOT NULL CHECK (direction IN ('Buy','Sell')),
+        entry_price NUMERIC NOT NULL,
+        exit_price NUMERIC NOT NULL,
+        result TEXT NOT NULL CHECK (result IN ('Win','Loss','Breakeven')),
+        risk_reward NUMERIC,
+        pnl NUMERIC NOT NULL DEFAULT 0,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+      );
+      CREATE INDEX IF NOT EXISTS trades_user_id_idx ON trades(user_id);
     `).catch((err) => { schemaReady = null; throw err; });
   }
   return schemaReady;
