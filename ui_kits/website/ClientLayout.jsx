@@ -13,7 +13,6 @@ const CLIENT_NAV = [
   ['dashboard', 'Dashboard', 'layout-dashboard', '/client/dashboard'],
   ['accounts', 'Trading Accounts', 'wallet', '/client/accounts'],
   ['journal', 'Trading Journal', 'book-open', '/client/journal'],
-  ['backtesting', 'Backtesting', 'line-chart', '/client/backtesting'],
   ['performance', 'Performance', 'trending-up', '/client/performance'],
   ['plan', 'Trading Plan', 'clipboard-list', '/client/trading-plan'],
   ['markets', 'Markets', 'globe', '/client/markets'],
