@@ -12,6 +12,13 @@
     { "source": "/course", "destination": "/ui_kits/website/course.html" },
     { "source": "/pricing", "destination": "/ui_kits/website/pricing.html" },
     { "source": "/blog", "destination": "/ui_kits/website/blog.html" },
-    { "source": "/contact", "destination": "/ui_kits/website/contact.html" }
+    { "source": "/contact", "destination": "/ui_kits/website/contact.html" },
+    { "source": "/signup", "destination": "/ui_kits/website/signup.html" },
+    { "source": "/signin", "destination": "/ui_kits/website/signin.html" },
+    { "source": "/client/dashboard", "destination": "/ui_kits/website/client/dashboard.html" },
+    { "source": "/client/backtesting", "destination": "/ui_kits/website/client/backtesting.html" },
+    { "source": "/client/journal", "destination": "/ui_kits/website/client/journal.html" },
+    { "source": "/client/performance", "destination": "/ui_kits/website/client/performance.html" },
+    { "source": "/client/settings", "destination": "/ui_kits/website/client/settings.html" }
   ]
 }

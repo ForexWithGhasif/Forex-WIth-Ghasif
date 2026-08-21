@@ -11,4 +11,10 @@ module.exports = {
     from: process.env.RESEND_FROM || 'onboarding@resend.dev',
   },
   contactEmail: process.env.CONTACT_EMAIL,
+  isProduction: process.env.NODE_ENV === 'production',
+  /* Accept whichever name the provider auto-injects: Vercel Postgres sets
+     POSTGRES_URL (or POSTGRES_URL_NON_POOLING); a manually-set DATABASE_URL
+     (Neon, Supabase, etc.) still takes priority if present. */
+  databaseUrl: process.env.DATABASE_URL || process.env.POSTGRES_URL || process.env.POSTGRES_URL_NON_POOLING,
+  jwtSecret: process.env.JWT_SECRET,
 };

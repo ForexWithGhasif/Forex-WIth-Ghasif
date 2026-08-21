@@ -166,3 +166,23 @@ body { background: transparent; overflow-x: hidden; }
    any modal), which breaks their fixed positioning relative to the viewport. */
 @keyframes fwgAppIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
 .fwg-app-in { animation: fwgAppIn var(--dur-slow) var(--ease-out) backwards; }
+
+/* Client area sidebar: a normal in-flow column on desktop; an off-canvas
+   drawer below 900px, toggled by the header's menu button. */
+.fwg-client-menu-btn { display: none; }
+@media (max-width: 900px) {
+  .fwg-client-menu-btn { display: inline-flex !important; }
+  .fwg-client-sidebar {
+    position: fixed; top: 0; left: 0; bottom: 0; z-index: 95; width: 260px !important;
+    transform: translateX(-100%); transition: transform var(--dur-base) var(--ease-out);
+    background: var(--bg-elevated); box-shadow: var(--shadow-xl); overflow-y: auto;
+  }
+  .fwg-client-sidebar-open { transform: translateX(0); }
+}
+.fwg-client-backdrop { position: fixed; inset: 0; z-index: 90; background: rgba(4,5,8,0.6); display: none; }
+@media (max-width: 900px) {
+  .fwg-client-backdrop { display: block; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fwg-client-sidebar { transition: none; }
+}

@@ -1,11 +1,13 @@
 const express = require('express');
 const cors = require('cors');
+const cookieParser = require('cookie-parser');
 const { clientOrigin } = require('./config/env');
 const healthRoutes = require('./routes/healthRoutes');
 const contactRoutes = require('./routes/contactRoutes');
 const newsletterRoutes = require('./routes/newsletterRoutes');
 const marketDataRoutes = require('./routes/marketDataRoutes');
 const economicCalendarRoutes = require('./routes/economicCalendarRoutes');
+const authRoutes = require('./routes/authRoutes');
 
 const app = express();
 
@@ -14,14 +16,21 @@ const app = express();
    ERR_ERL_UNEXPECTED_X_FORWARDED_FOR on every request. */
 app.set('trust proxy', 1);
 
-app.use(cors({ origin: clientOrigin === '*' ? true : clientOrigin }));
+/* credentials:true is required for the client-area session cookie to survive
+   a cross-origin request (e.g. the local dev frontend on :5510 calling this
+   backend on :5000) — with `origin:true` the cors package reflects back the
+   request's actual Origin rather than sending a literal "*", which is what
+   makes it valid to combine with credentials at all. */
+app.use(cors({ origin: clientOrigin === '*' ? true : clientOrigin, credentials: true }));
 app.use(express.json());
+app.use(cookieParser());
 
 app.use('/api/health', healthRoutes);
 app.use('/api/contact', contactRoutes);
 app.use('/api/newsletter', newsletterRoutes);
 app.use('/api/market-prices', marketDataRoutes);
 app.use('/api/economic-calendar', economicCalendarRoutes);
+app.use('/api/auth', authRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ success: false, message: 'Not found' });

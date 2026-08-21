@@ -55,6 +55,7 @@ function Nav({ active }) {
           })}
         </div>
         <div style={{display:'flex',alignItems:'center',gap:'10px'}}>
+          <span className="fwg-hide-mobile"><KitButton as="a" href="/client/dashboard" variant="secondary" size="sm" iconLeft={<Icon name="log-in" size={15}/>}>Client Area</KitButton></span>
           <span className="fwg-hide-mobile"><KitButton as="a" href={(window.FWG_SOCIAL||{}).whatsappCommunity} target="_blank" rel="noopener noreferrer" variant="primary" size="sm" iconRight={<Icon name="arrow-up-right" size={16}/>}>Join Free Community</KitButton></span>
           <button className="fwg-menu-btn" onClick={()=>setOpen(o=>!o)} aria-label="Menu" aria-expanded={open}
             style={{display:'none',width:'40px',height:'40px',alignItems:'center',justifyContent:'center',borderRadius:'var(--radius-md)',
@@ -70,7 +71,10 @@ function Nav({ active }) {
             return <a key={label} href={href} style={{padding:'13px 14px',borderRadius:'var(--radius-md)',fontFamily:'var(--font-body)',fontSize:'var(--text-md)',fontWeight:600,
               color:on?'var(--text-gold)':'var(--text-secondary)',background:on?'var(--accent-soft-bg)':'transparent'}}>{label}</a>;
           })}
-          <div style={{padding:'10px 4px 6px'}}><KitButton as="a" href="/pricing" variant="primary" fullWidth>View Pricing</KitButton></div>
+          <div style={{padding:'10px 4px 6px',display:'flex',flexDirection:'column',gap:'8px'}}>
+            <KitButton as="a" href="/client/dashboard" variant="secondary" fullWidth iconLeft={<Icon name="log-in" size={15}/>}>Client Area</KitButton>
+            <KitButton as="a" href="/pricing" variant="primary" fullWidth>View Pricing</KitButton>
+          </div>
         </div>
       )}
     </header>
