@@ -547,6 +547,8 @@ function PhoneInput({ value, onChange, country, onCountry, required }) {
 
 function ContactForm() {
   const [sent,setSent]=React.useState(false);
+  const [error,setError]=React.useState('');
+  const [submitting,setSubmitting]=React.useState(false);
   const [f,setF]=React.useState({name:'',email:'',phone:'',topic:'Premium Signals',message:''});
   const [country,setCountry]=React.useState(null);
   const fld=(k)=>({value:f[k],onChange:(e)=>setF(s=>({...s,[k]:e.target.value}))});
@@ -556,6 +558,9 @@ function ContactForm() {
 
   const handleSubmit=async(e)=>{
     e.preventDefault();
+    if(submitting) return;
+    setSubmitting(true);
+    setError('');
     try{
       const res=await fetch(`${window.FWG_API_BASE}/api/contact`,{
         method:'POST',
@@ -564,12 +569,14 @@ function ContactForm() {
       });
       const data=await res.json().catch(()=>({}));
       if(!res.ok || !data.success){
-        console.error('Contact form submission failed:',data.message||res.statusText);
+        setError(data.message || "Something went wrong sending your message. Please try again, or reach us on WhatsApp.");
         return;
       }
       setSent(true);
     }catch(err){
-      console.error('Contact form submission failed:',err);
+      setError("Couldn't reach the server. Please check your connection and try again, or reach us on WhatsApp.");
+    }finally{
+      setSubmitting(false);
     }
   };
 
@@ -597,7 +604,15 @@ function ContactForm() {
           </div>
         </div>
         <div><label style={lab}>Message</label><textarea required rows={5} placeholder="Tell us a little about your trading and what you’re looking for…" style={{...inputStyle,resize:'vertical'}} {...fld('message')}/></div>
-        <KitButton as="button" type="submit" variant="primary" size="lg" iconRight={<Icon name="send" size={17}/>}>Send message</KitButton>
+        {error && (
+          <div style={{display:'flex',gap:'10px',alignItems:'flex-start',padding:'13px 16px',borderRadius:'var(--radius-md)',background:'var(--bearish-bg)',border:'1px solid rgba(228,71,74,0.32)'}}>
+            <Icon name="alert-triangle" size={17} color="var(--bearish)" style={{flexShrink:0,marginTop:'2px'}}/>
+            <span style={{fontSize:'var(--text-xs)',lineHeight:1.6,color:'var(--text-secondary)'}}>
+              {error} {(window.FWG_SOCIAL||{}).whatsapp && <a href={window.FWG_SOCIAL.whatsapp} target="_blank" rel="noopener noreferrer" style={{color:'var(--text-gold)',fontWeight:700,textDecoration:'underline'}}>WhatsApp us</a>}
+            </span>
+          </div>
+        )}
+        <KitButton as="button" type="submit" variant="primary" size="lg" disabled={submitting} iconRight={<Icon name={submitting?'loader-circle':'send'} size={17}/>}>{submitting?'Sending…':'Send message'}</KitButton>
       </form>
     )}
   </KitCard>;
