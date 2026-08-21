@@ -12,9 +12,16 @@ module.exports = {
   },
   contactEmail: process.env.CONTACT_EMAIL,
   isProduction: process.env.NODE_ENV === 'production',
-  /* Accept whichever name the provider auto-injects: Vercel Postgres sets
-     POSTGRES_URL (or POSTGRES_URL_NON_POOLING); a manually-set DATABASE_URL
-     (Neon, Supabase, etc.) still takes priority if present. */
-  databaseUrl: process.env.DATABASE_URL || process.env.POSTGRES_URL || process.env.POSTGRES_URL_NON_POOLING,
+  /* Accept whichever name the provider auto-injects. A manually-set
+     DATABASE_URL takes priority; otherwise check the Vercel Postgres names
+     (POSTGRES_URL / POSTGRES_URL_NON_POOLING) and the Supabase-via-Vercel
+     integration's names once its custom prefix ("DATABASE") is applied to
+     every variable it creates, giving DATABASE_POSTGRES_URL. */
+  databaseUrl:
+    process.env.DATABASE_URL ||
+    process.env.POSTGRES_URL ||
+    process.env.POSTGRES_URL_NON_POOLING ||
+    process.env.DATABASE_POSTGRES_URL ||
+    process.env.DATABASE_POSTGRES_URL_NON_POOLING,
   jwtSecret: process.env.JWT_SECRET,
 };
