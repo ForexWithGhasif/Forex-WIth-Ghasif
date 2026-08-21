@@ -541,28 +541,352 @@ function ClientPerformancePage() {
 /* Backtesting: structure/UI only for now (per spec) — the replay engine
    connects to a real historical-data provider next; nothing on this page
    fabricates candles or prices in the meantime. */
+/* ---------- Backtesting: sample historical data + replay engine ----------
+   The rest of this file only ever renders numbers pulled from a user-scoped
+   fetch (see the banner at the top) — backtesting is the deliberate
+   exception, since replaying history is the entire point of a backtester.
+   The candles below are a seeded, deterministic synthetic random walk, NOT
+   real market prices. Every place this data reaches the UI says "Sample
+   data" so nobody mistakes a backtest run here for validation against real
+   history. Closed trades save into the same `trades` table the Journal
+   reads (source: 'backtest') — that column and the Journal's "BT" badge
+   were already built for exactly this (see tradeService.js, ClientPages2.jsx). */
+
+const BT_SYMBOLS = [
+  { value:'XAUUSD', label:'XAU/USD', base:2350.00, decimals:2 },
+  { value:'EURUSD', label:'EUR/USD', base:1.0850, decimals:5 },
+  { value:'GBPUSD', label:'GBP/USD', base:1.2680, decimals:5 },
+];
+const BT_TIMEFRAMES = [
+  { value:'M15', label:'15m', mins:15,   vol:0.09 },
+  { value:'H1',  label:'1H',  mins:60,   vol:0.16 },
+  { value:'H4',  label:'4H',  mins:240,  vol:0.30 },
+  { value:'D1',  label:'1D',  mins:1440, vol:0.55 },
+];
+const BT_PREROLL = 60;
+const BT_REPLAY_LEN = 220;
+const BT_SPEEDS = [1,2,4,8];
+
+function fwgHashSeed(str) {
+  let h = 2166136261;
+  for (let i=0;i<str.length;i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return h >>> 0;
+}
+function fwgMulberry32(seed) {
+  let t = seed;
+  return function() {
+    t += 0x6D2B79F5;
+    let x = Math.imul(t ^ (t >>> 15), t | 1);
+    x ^= x + Math.imul(x ^ (x >>> 7), x | 61);
+    return ((x ^ (x >>> 14)) >>> 0) / 4294967296;
+  };
+}
+/* Deterministic per symbol+timeframe — the same "history" reappears on every
+   reload (a stable sample dataset) while still differing across symbols. */
+function fwgGenerateSampleCandles(symbolMeta, tf, count) {
+  const rand = fwgMulberry32(fwgHashSeed(symbolMeta.value+'|'+tf.value));
+  const stepSec = tf.mins*60;
+  const nowSec = Math.floor(Date.now()/1000/stepSec)*stepSec;
+  let price = symbolMeta.base;
+  let vol = tf.vol * symbolMeta.base * 0.0022;
+  const candles = [];
+  for (let i=count-1; i>=0; i--) {
+    const time = nowSec - i*stepSec;
+    vol = Math.max(vol*0.92 + rand()*symbolMeta.base*0.0006*tf.vol, symbolMeta.base*0.00015);
+    const open = price;
+    let hi=open, lo=open, cur=open;
+    for (let k=0;k<5;k++) { cur += (rand()-0.5)*vol*0.7; hi=Math.max(hi,cur); lo=Math.min(lo,cur); }
+    cur += (rand()-0.5)*vol*0.9;
+    hi = Math.max(hi,cur); lo = Math.min(lo,cur);
+    const close = cur;
+    candles.push({
+      time, volume: Math.round(180+rand()*760),
+      open:+open.toFixed(symbolMeta.decimals), high:+hi.toFixed(symbolMeta.decimals),
+      low:+lo.toFixed(symbolMeta.decimals), close:+close.toFixed(symbolMeta.decimals),
+    });
+    price = close;
+  }
+  return candles;
+}
+function fwgVolBar(c) { return { time:c.time, value:c.volume, color: c.close>=c.open ? 'rgba(47,208,138,0.5)' : 'rgba(242,112,111,0.5)' }; }
+function fwgComputePnl(direction, entry, price, size) { return (direction==='Buy' ? (price-entry) : (entry-price)) * size; }
+function fwgMaxDrawdownFromEquity(points) {
+  if (points.length < 2) return 0;
+  let peak = points[0].balance, max = 0;
+  for (const p of points) { if (p.balance>peak) peak = p.balance; if (peak>0) { const dd=((peak-p.balance)/peak)*100; if (dd>max) max=dd; } }
+  return max;
+}
+function fwgBuildTradeRecord(pos, closeIndex, exitPrice, pnl, tag, dataset, symbolMeta, seq) {
+  const riskDist = pos.sl!=null ? Math.abs(pos.entry-pos.sl) : null;
+  const rMultiple = riskDist ? +(((pos.direction==='Buy'?(exitPrice-pos.entry):(pos.entry-exitPrice))/riskDist).toFixed(2)) : null;
+  const plannedRR = (riskDist && pos.tp!=null) ? +((Math.abs(pos.tp-pos.entry)/riskDist).toFixed(2)) : null;
+  const candle = dataset[closeIndex];
+  return {
+    id:'t'+seq, closeIndex, date:new Date(candle.time*1000).toISOString().slice(0,10),
+    symbol:symbolMeta.label, direction:pos.direction, entry:pos.entry, exit:exitPrice,
+    stopLoss:pos.sl, takeProfit:pos.tp, size:pos.size,
+    result: pnl>0?'Win':pnl<0?'Loss':'Breakeven', riskReward:plannedRR, rMultiple, pnl:+pnl.toFixed(2), closedBy:tag,
+  };
+}
+
+/* Isolates the imperative lightweight-charts instance from React's render
+   cycle: created once on mount, then mutated via .setData()/.update() from
+   the parent's own effects instead of being torn down on every state change. */
+function ClientBacktestChartCanvas({ chartApiRef }) {
+  const containerRef = React.useRef(null);
+
+  React.useEffect(() => {
+    const el = containerRef.current;
+    if (!el || !window.LightweightCharts) return;
+    const cs = getComputedStyle(document.documentElement);
+    const col = (name, fallback) => { const v = cs.getPropertyValue(name).trim(); return v || fallback; };
+    const bullish = col('--bullish','#2FD08A'), bearish = col('--bearish','#F2706F');
+    const textTertiary = col('--text-tertiary','#828AA0');
+    const borderSubtle = col('--border-subtle','rgba(255,255,255,0.06)');
+    const borderDefault = col('--border-default','rgba(255,255,255,0.10)');
+
+    const chart = window.LightweightCharts.createChart(el, {
+      width: el.clientWidth, height: 440,
+      layout: { background:{ type:'solid', color:'transparent' }, textColor:textTertiary, fontSize:11 },
+      grid: { vertLines:{ color:borderSubtle }, horzLines:{ color:borderSubtle } },
+      rightPriceScale: { borderColor:borderDefault },
+      timeScale: { borderColor:borderDefault, timeVisible:true, secondsVisible:false },
+      crosshair: { mode: window.LightweightCharts.CrosshairMode.Normal },
+    });
+    const candleSeries = chart.addCandlestickSeries({ upColor:bullish, downColor:bearish, borderVisible:false, wickUpColor:bullish, wickDownColor:bearish });
+    candleSeries.priceScale().applyOptions({ scaleMargins:{ top:0.08, bottom:0.24 } });
+    const volumeSeries = chart.addHistogramSeries({ priceFormat:{ type:'volume' }, priceScaleId:'', color:borderDefault });
+    volumeSeries.priceScale().applyOptions({ scaleMargins:{ top:0.82, bottom:0 } });
+
+    chartApiRef.current = { chart, candleSeries, volumeSeries };
+    const ro = new ResizeObserver(entries => { const w = entries[0].contentRect.width; if (w>0) chart.applyOptions({ width:w }); });
+    ro.observe(el);
+    return () => { ro.disconnect(); chart.remove(); chartApiRef.current = null; };
+  }, []);
+
+  return <div ref={containerRef} style={{width:'100%',height:'440px'}}/>;
+}
+
 function ClientBacktestingPage() {
+  const [symbolValue, setSymbolValue] = React.useState('XAUUSD');
+  const [tfValue, setTfValue] = React.useState('H1');
+  const [startingBalance, setStartingBalance] = React.useState('10000');
+  const [riskPct, setRiskPct] = React.useState('1');
+  const [accounts, setAccounts] = React.useState([]);
+  const [accountId, setAccountId] = React.useState('');
+  const [linkedStats, setLinkedStats] = React.useState(null);
+
+  const [cursor, setCursor] = React.useState(BT_PREROLL);
+  const [playing, setPlaying] = React.useState(false);
+  const [speed, setSpeed] = React.useState(1);
+
+  const [position, setPosition] = React.useState(null);
+  const [sizeInput, setSizeInput] = React.useState('1000');
+  const [slInput, setSlInput] = React.useState('');
+  const [tpInput, setTpInput] = React.useState('');
+  const [closedTrades, setClosedTrades] = React.useState([]);
+  const [savedIds, setSavedIds] = React.useState({});
+  const [savingId, setSavingId] = React.useState(null);
+
+  const chartApiRef = React.useRef(null);
+  const tradeSeqRef = React.useRef(0);
+
+  const symbolMeta = BT_SYMBOLS.find(s=>s.value===symbolValue);
+  const tfMeta = BT_TIMEFRAMES.find(t=>t.value===tfValue);
+  const dataset = React.useMemo(() => fwgGenerateSampleCandles(symbolMeta, tfMeta, BT_PREROLL+BT_REPLAY_LEN), [symbolValue, tfValue]);
+  const atEnd = cursor >= dataset.length-1;
+
+  React.useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch(`${window.FWG_API_BASE}/api/trading-accounts`, { credentials:'include' });
+        const data = await res.json().catch(()=>({}));
+        if (res.ok && data.success) setAccounts(data.accounts);
+      } catch (err) {}
+    })();
+  }, []);
+
+  /* Picking a real trading account here isn't just a label on saved trades:
+     it seeds this session from that account's actual live balance (starting
+     balance + every real trade already tagged to it) and its own risk %, so
+     "trade on multiple accounts" means each account's backtests continue
+     from where that account really stands, not an arbitrary number. */
+  React.useEffect(() => {
+    if (!accountId) { setLinkedStats(null); return; }
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`${window.FWG_API_BASE}/api/trading-accounts/${accountId}/stats`, { credentials:'include' });
+        const data = await res.json().catch(()=>({}));
+        if (cancelled || !res.ok || !data.success) return;
+        setLinkedStats(data.stats);
+        setStartingBalance(String(data.stats.accountBalance));
+        if (data.stats.riskPerTradePct != null) setRiskPct(String(data.stats.riskPerTradePct));
+      } catch (err) {}
+    })();
+    return () => { cancelled = true; };
+  }, [accountId]);
+
+  // New symbol/timeframe = a fresh session: reset replay, position, and log.
+  React.useEffect(() => {
+    setCursor(BT_PREROLL); setPlaying(false); setPosition(null); setClosedTrades([]);
+    const api = chartApiRef.current;
+    if (api) {
+      const visible = dataset.slice(0, BT_PREROLL);
+      api.candleSeries.setData(visible);
+      api.volumeSeries.setData(visible.map(fwgVolBar));
+      api.chart.timeScale().fitContent();
+    }
+  }, [dataset]);
+
+  function revealTo(targetIndex) {
+    const api = chartApiRef.current;
+    const to = Math.max(0, Math.min(targetIndex, dataset.length-1));
+    if (to === cursor) return;
+    if (to < cursor) {
+      const visible = dataset.slice(0, to+1);
+      if (api) { api.candleSeries.setData(visible); api.volumeSeries.setData(visible.map(fwgVolBar)); }
+      setPosition(pos => (pos && pos.openIndex>to) ? null : pos);
+      setClosedTrades(list => list.filter(t=>t.closeIndex<=to));
+      setCursor(to);
+      return;
+    }
+    let pos = position;
+    const newClosed = [];
+    for (let i=cursor+1; i<=to; i++) {
+      const candle = dataset[i];
+      if (api) { api.candleSeries.update(candle); api.volumeSeries.update(fwgVolBar(candle)); }
+      if (pos) {
+        let hit = null;
+        if (pos.sl!=null) { const h = pos.direction==='Buy' ? candle.low<=pos.sl : candle.high>=pos.sl; if (h) hit = { price:pos.sl, tag:'Stop loss' }; }
+        if (!hit && pos.tp!=null) { const h = pos.direction==='Buy' ? candle.high>=pos.tp : candle.low<=pos.tp; if (h) hit = { price:pos.tp, tag:'Take profit' }; }
+        if (hit) {
+          const pnl = fwgComputePnl(pos.direction, pos.entry, hit.price, pos.size);
+          tradeSeqRef.current += 1;
+          newClosed.push(fwgBuildTradeRecord(pos, i, hit.price, pnl, hit.tag, dataset, symbolMeta, tradeSeqRef.current));
+          pos = null;
+        }
+      }
+    }
+    if (newClosed.length) setClosedTrades(list => [...list, ...newClosed]);
+    setPosition(pos);
+    setCursor(to);
+  }
+
+  React.useEffect(() => {
+    if (!playing || atEnd) { if (atEnd) setPlaying(false); return; }
+    const id = setTimeout(() => revealTo(cursor+1), 900/speed);
+    return () => clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [playing, atEnd, cursor, speed, position, dataset]);
+
+  function openPosition(dir) {
+    if (position) return;
+    const entryPrice = dataset[cursor].close;
+    const size = Math.max(1, Number(sizeInput)||1);
+    setPosition({ direction:dir, entry:entryPrice, size, sl: slInput===''?null:Number(slInput), tp: tpInput===''?null:Number(tpInput), openIndex:cursor });
+  }
+  function manualClose() {
+    if (!position) return;
+    const exitPrice = dataset[cursor].close;
+    const pnl = fwgComputePnl(position.direction, position.entry, exitPrice, position.size);
+    tradeSeqRef.current += 1;
+    setClosedTrades(list => [...list, fwgBuildTradeRecord(position, cursor, exitPrice, pnl, 'Manual', dataset, symbolMeta, tradeSeqRef.current)]);
+    setPosition(null);
+  }
+  function suggestSize() {
+    const sl = Number(slInput);
+    if (slInput==='' || !Number.isFinite(sl)) return;
+    const price = dataset[cursor].close;
+    const dist = Math.abs(price-sl);
+    if (dist<=0) return;
+    const riskAmount = (Number(startingBalance)||0) * (Number(riskPct)||0) / 100;
+    setSizeInput(String(Math.max(1, Math.round(riskAmount/dist))));
+  }
+  async function saveTradeToJournal(trade) {
+    setSavingId(trade.id);
+    try {
+      const res = await fetch(`${window.FWG_API_BASE}/api/trades`, {
+        method:'POST', credentials:'include', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+          date:trade.date, symbol:trade.symbol, direction:trade.direction, entry:trade.entry, exit:trade.exit,
+          stopLoss:trade.stopLoss, takeProfit:trade.takeProfit, result:trade.result, riskReward:trade.riskReward,
+          rMultiple:trade.rMultiple, pnl:trade.pnl, accountId: accountId||null, source:'backtest',
+          notes:`Backtesting session — ${symbolMeta.label} ${tfMeta.label}, sample data, closed by ${trade.closedBy}.`,
+        }),
+      });
+      const data = await res.json().catch(()=>({}));
+      if (res.ok && data.success) setSavedIds(s=>({...s,[trade.id]:true}));
+    } catch (err) {} finally { setSavingId(null); }
+  }
+
+  const currentPrice = dataset[cursor].close;
+  const realized = closedTrades.reduce((s,t)=>s+t.pnl, 0);
+  const unrealized = position ? fwgComputePnl(position.direction, position.entry, currentPrice, position.size) : 0;
+  const balance = (Number(startingBalance)||0) + realized;
+  const equityPoints = React.useMemo(() => {
+    const base = Number(startingBalance)||0;
+    let running = base;
+    const pts = [{ balance: base }];
+    for (const t of [...closedTrades].sort((a,b)=>a.closeIndex-b.closeIndex)) { running += t.pnl; pts.push({ balance: running }); }
+    return pts;
+  }, [closedTrades, startingBalance]);
+  const maxDrawdownPct = fwgMaxDrawdownFromEquity(equityPoints);
+
   return <React.Fragment>
-    <h1 style={{fontFamily:'var(--font-display)',fontWeight:800,fontSize:'var(--text-2xl)',letterSpacing:'var(--ls-tight)',margin:'0 0 20px'}}>Backtesting</h1>
+    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:'12px',marginBottom:'20px'}}>
+      <h1 style={{fontFamily:'var(--font-display)',fontWeight:800,fontSize:'var(--text-2xl)',letterSpacing:'var(--ls-tight)',margin:0}}>Backtesting</h1>
+      <KitBadge tone="neutral" mono>Sample data — not real market prices</KitBadge>
+    </div>
+
     <KitCard padding="0" style={{overflow:'hidden',marginBottom:'20px'}}>
-      <div style={{padding:'16px 18px',borderBottom:'1px solid var(--border-subtle)',display:'flex',gap:'12px',flexWrap:'wrap',alignItems:'center'}}>
-        <ClientSelect value="" onChange={()=>{}} placeholder="Symbol" options={[{value:'EURUSD',label:'EUR/USD'},{value:'XAUUSD',label:'XAU/USD'},{value:'GBPUSD',label:'GBP/USD'}]}/>
-        <ClientSelect value="" onChange={()=>{}} placeholder="Timeframe" options={[{value:'M1',label:'1 minute'},{value:'M15',label:'15 minutes'},{value:'H1',label:'1 hour'},{value:'H4',label:'4 hours'},{value:'D1',label:'1 day'}]}/>
-        <input type="date" style={{...CLIENT_INPUT_STYLE,width:'auto'}}/>
-        <input type="number" placeholder="Starting balance" style={{...CLIENT_INPUT_STYLE,width:'160px'}}/>
-        <input type="number" placeholder="Risk %" style={{...CLIENT_INPUT_STYLE,width:'110px'}}/>
+      <div style={{padding:'14px 18px',borderBottom:'1px solid var(--border-subtle)',display:'flex',gap:'10px',flexWrap:'wrap',alignItems:'center',justifyContent:'space-between'}}>
+        <div style={{display:'flex',gap:'10px',flexWrap:'wrap',alignItems:'center'}}>
+          <select value={symbolValue} onChange={e=>setSymbolValue(e.target.value)} style={{...CLIENT_INPUT_STYLE,width:'auto',cursor:'pointer'}}>
+            {BT_SYMBOLS.map(s=>(<option key={s.value} value={s.value}>{s.label}</option>))}
+          </select>
+          <div style={{display:'flex',gap:'6px'}}>
+            {BT_TIMEFRAMES.map(tf=>{
+              const on = tf.value===tfValue;
+              return <button key={tf.value} type="button" onClick={()=>setTfValue(tf.value)}
+                style={{padding:'9px 14px',borderRadius:'var(--radius-md)',cursor:'pointer',fontSize:'var(--text-xs)',fontWeight:700,
+                  border:`1px solid ${on?'var(--border-gold)':'var(--border-default)'}`,
+                  background:on?'var(--accent-soft-bg)':'var(--surface-inset)',color:on?'var(--text-gold)':'var(--text-secondary)'}}>
+                {tf.label}
+              </button>;
+            })}
+          </div>
+        </div>
+        <div style={{fontFamily:'var(--font-mono)',fontSize:'var(--text-md)',fontWeight:700}}>{currentPrice.toFixed(symbolMeta.decimals)}</div>
       </div>
-      <div style={{padding:'60px 20px',textAlign:'center',background:'#0d1019'}}>
-        <Icon name="candlestick-chart" size={32} color="var(--text-muted)"/>
-        <p style={{fontSize:'var(--text-sm)',color:'var(--text-tertiary)',marginTop:'14px'}}>The historical replay chart connects here once a real market-data source is wired in — no simulated candles are shown in the meantime.</p>
-      </div>
+
+      <ClientBacktestChartCanvas chartApiRef={chartApiRef}/>
+
       <div style={{padding:'14px 18px',borderTop:'1px solid var(--border-subtle)',display:'flex',gap:'10px',alignItems:'center',flexWrap:'wrap'}}>
-        {['skip-back','play','pause','skip-forward'].map(icn=>(
-          <button key={icn} type="button" disabled style={{width:'38px',height:'38px',borderRadius:'var(--radius-md)',background:'var(--surface-inset)',border:'1px solid var(--border-default)',color:'var(--text-muted)',display:'inline-flex',alignItems:'center',justifyContent:'center',cursor:'not-allowed'}}>
-            <Icon name={icn} size={16}/>
-          </button>
-        ))}
-        <ClientSelect value="" onChange={()=>{}} placeholder="Replay speed" options={[{value:'1',label:'1x'},{value:'2',label:'2x'},{value:'4',label:'4x'}]}/>
+        <button type="button" onClick={()=>revealTo(BT_PREROLL)} title="Back to start"
+          style={{width:'38px',height:'38px',borderRadius:'var(--radius-md)',background:'var(--surface-inset)',border:'1px solid var(--border-default)',color:'var(--text-secondary)',display:'inline-flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}>
+          <Icon name="skip-back" size={16}/>
+        </button>
+        <button type="button" onClick={()=>setPlaying(p=>!p)} disabled={atEnd} title={playing?'Pause':'Play'}
+          style={{width:'38px',height:'38px',borderRadius:'var(--radius-md)',background:playing?'var(--accent-soft-bg)':'var(--surface-inset)',border:`1px solid ${playing?'var(--border-gold)':'var(--border-default)'}`,color:playing?'var(--text-gold)':'var(--text-secondary)',display:'inline-flex',alignItems:'center',justifyContent:'center',cursor:atEnd?'not-allowed':'pointer',opacity:atEnd?0.5:1}}>
+          <Icon name={playing?'pause':'play'} size={16}/>
+        </button>
+        <button type="button" onClick={()=>{ setPlaying(false); revealTo(cursor+1); }} disabled={atEnd} title="Step forward one candle"
+          style={{width:'38px',height:'38px',borderRadius:'var(--radius-md)',background:'var(--surface-inset)',border:'1px solid var(--border-default)',color:'var(--text-secondary)',display:'inline-flex',alignItems:'center',justifyContent:'center',cursor:atEnd?'not-allowed':'pointer',opacity:atEnd?0.5:1}}>
+          <Icon name="skip-forward" size={16}/>
+        </button>
+        <select value={speed} onChange={e=>setSpeed(Number(e.target.value))} style={{...CLIENT_INPUT_STYLE,width:'auto',cursor:'pointer'}}>
+          {BT_SPEEDS.map(s=>(<option key={s} value={s}>{s}x</option>))}
+        </select>
+        <input type="range" min={BT_PREROLL} max={dataset.length-1} value={cursor} onChange={e=>{ setPlaying(false); revealTo(Number(e.target.value)); }}
+          style={{flex:1,minWidth:'140px',accentColor:'var(--accent)'}}/>
+        <span style={{fontFamily:'var(--font-mono)',fontSize:'var(--text-xs)',color:'var(--text-muted)',whiteSpace:'nowrap'}}>{cursor-BT_PREROLL+1} / {dataset.length-BT_PREROLL}</span>
+      </div>
+
+      <div style={{padding:'14px 18px',borderTop:'1px solid var(--border-subtle)',display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:'12px',background:'var(--surface-inset)'}} className="fwg-grid-3">
+        <div><div style={{fontSize:'var(--text-2xs)',textTransform:'uppercase',letterSpacing:'0.1em',color:'var(--text-muted)',fontWeight:700,marginBottom:'4px'}}>Account balance</div><div style={{fontFamily:'var(--font-mono)',fontWeight:700}}>{fwgFormatMoney(balance)}</div></div>
+        <div><div style={{fontSize:'var(--text-2xs)',textTransform:'uppercase',letterSpacing:'0.1em',color:'var(--text-muted)',fontWeight:700,marginBottom:'4px'}}>Realized P/L</div><div style={{fontFamily:'var(--font-mono)',fontWeight:700,color:realized>0?'var(--bullish)':realized<0?'var(--bearish)':'var(--text-primary)'}}>{fwgFormatMoney(realized)}</div></div>
+        <div><div style={{fontSize:'var(--text-2xs)',textTransform:'uppercase',letterSpacing:'0.1em',color:'var(--text-muted)',fontWeight:700,marginBottom:'4px'}}>Unrealized P/L</div><div style={{fontFamily:'var(--font-mono)',fontWeight:700,color:unrealized>0?'var(--bullish)':unrealized<0?'var(--bearish)':'var(--text-primary)'}}>{position?fwgFormatMoney(unrealized):'—'}</div></div>
       </div>
     </KitCard>
 
@@ -570,27 +894,98 @@ function ClientBacktestingPage() {
       <KitCard>
         <div style={{fontSize:'var(--text-xs)',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.08em',color:'var(--text-muted)',marginBottom:'14px'}}>Trade controls</div>
         <div style={{display:'flex',flexDirection:'column',gap:'12px'}}>
-          <div style={{display:'flex',gap:'8px'}}>
-            <KitButton as="button" type="button" variant="secondary" fullWidth disabled>Buy</KitButton>
-            <KitButton as="button" type="button" variant="secondary" fullWidth disabled>Sell</KitButton>
+          <div>
+            <ClientFieldLabel>Trading account (optional)</ClientFieldLabel>
+            <ClientSelect value={accountId} onChange={setAccountId} placeholder="Don't link an account — use custom balance below" options={accounts.map(a=>({value:String(a.id),label:a.name}))}/>
+            {linkedStats && <p style={{fontSize:'var(--text-2xs)',color:'var(--text-tertiary)',margin:'8px 0 0',lineHeight:1.5}}>
+              Linked to <strong style={{color:'var(--text-gold)'}}>{linkedStats.name}</strong> — using its live balance ({fwgFormatMoney(linkedStats.accountBalance)} from {linkedStats.totalTrades} real trade{linkedStats.totalTrades===1?'':'s'}). Trades you save from this session add to that same balance.
+            </p>}
+            {linkedStats && linkedStats.maxDrawdownLimitPct!=null && maxDrawdownPct>linkedStats.maxDrawdownLimitPct && (
+              <p style={{fontSize:'var(--text-2xs)',color:'var(--bearish)',fontWeight:700,margin:'8px 0 0',lineHeight:1.5}}>
+                This session's drawdown ({fwgFormatPct(maxDrawdownPct)}) has breached {linkedStats.name}'s {linkedStats.maxDrawdownLimitPct}% max drawdown limit.
+              </p>
+            )}
           </div>
-          <input type="number" placeholder="Entry" style={CLIENT_INPUT_STYLE} disabled/>
-          <input type="number" placeholder="Stop loss" style={CLIENT_INPUT_STYLE} disabled/>
-          <input type="number" placeholder="Take profit" style={CLIENT_INPUT_STYLE} disabled/>
-          <input type="number" placeholder="Position size" style={CLIENT_INPUT_STYLE} disabled/>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'14px'}} className="fwg-grid-2">
+            <div><ClientFieldLabel>Starting balance{accountId?' (from account)':''}</ClientFieldLabel><input type="number" style={CLIENT_INPUT_STYLE} value={startingBalance} onChange={e=>setStartingBalance(e.target.value)} disabled={!!accountId}/></div>
+            <div><ClientFieldLabel>Risk %{accountId?' (from account)':''}</ClientFieldLabel><input type="number" style={CLIENT_INPUT_STYLE} value={riskPct} onChange={e=>setRiskPct(e.target.value)} disabled={!!accountId}/></div>
+          </div>
+          <div style={{display:'flex',gap:'8px'}}>
+            <KitButton as="button" type="button" variant="emerald" fullWidth disabled={!!position} onClick={()=>openPosition('Buy')}>Buy</KitButton>
+            <button type="button" disabled={!!position} onClick={()=>openPosition('Sell')}
+              style={{flex:1,display:'inline-flex',alignItems:'center',justifyContent:'center',padding:'12px 22px',borderRadius:'var(--radius-md)',fontWeight:700,fontSize:'var(--text-sm)',cursor:position?'not-allowed':'pointer',
+                background:'var(--bearish-bg)',color:'var(--bearish)',border:'1px solid rgba(228,71,74,0.32)',opacity:position?0.5:1}}>
+              Sell
+            </button>
+          </div>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'10px'}} className="fwg-grid-2">
+            <input type="number" step="any" placeholder="Stop loss" style={CLIENT_INPUT_STYLE} value={slInput} onChange={e=>setSlInput(e.target.value)} disabled={!!position}/>
+            <input type="number" step="any" placeholder="Take profit" style={CLIENT_INPUT_STYLE} value={tpInput} onChange={e=>setTpInput(e.target.value)} disabled={!!position}/>
+          </div>
+          <div style={{display:'flex',gap:'8px',alignItems:'center'}}>
+            <input type="number" placeholder="Position size (units)" style={CLIENT_INPUT_STYLE} value={sizeInput} onChange={e=>setSizeInput(e.target.value)} disabled={!!position}/>
+            <button type="button" onClick={suggestSize} disabled={!!position || slInput===''} title="Size from risk % and stop distance"
+              style={{flexShrink:0,padding:'12px 14px',borderRadius:'var(--radius-md)',fontSize:'var(--text-xs)',fontWeight:700,cursor:(!!position||slInput==='')?'not-allowed':'pointer',
+                background:'var(--surface-inset)',border:'1px solid var(--border-default)',color:'var(--text-secondary)',opacity:(!!position||slInput==='')?0.5:1,whiteSpace:'nowrap'}}>
+              Suggest size
+            </button>
+          </div>
+          {position && <div style={{padding:'12px 14px',borderRadius:'var(--radius-md)',background:'var(--surface-inset)',border:'1px solid var(--border-default)',display:'flex',alignItems:'center',justifyContent:'space-between',gap:'10px'}}>
+            <span style={{fontSize:'var(--text-xs)',color:position.direction==='Buy'?'var(--bullish)':'var(--bearish)',fontWeight:700}}>{position.direction} @ {position.entry.toFixed(symbolMeta.decimals)}</span>
+            <KitButton as="button" type="button" variant="secondary" size="sm" onClick={manualClose}>Close</KitButton>
+          </div>}
         </div>
       </KitCard>
       <KitCard>
         <div style={{fontSize:'var(--text-xs)',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.08em',color:'var(--text-muted)',marginBottom:'14px'}}>Session stats</div>
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'12px'}}>
-          <ClientStatCard label="Balance" value="—" />
-          <ClientStatCard label="P/L" value="—" />
-          <ClientStatCard label="Trades" value="—" />
-          <ClientStatCard label="Drawdown" value="—" />
+          <ClientStatCard label="Balance" value={fwgFormatMoney(balance)} />
+          <ClientStatCard label="Realized P/L" value={fwgFormatMoney(realized)} accent={realized>0?'var(--bullish)':realized<0?'var(--bearish)':undefined} />
+          <ClientStatCard label="Trades closed" value={closedTrades.length} />
+          <ClientStatCard label="Max drawdown" value={fwgFormatPct(maxDrawdownPct)} accent={maxDrawdownPct>0?'var(--bearish)':undefined} />
         </div>
       </KitCard>
     </div>
-    <p style={{fontSize:'var(--text-xs)',color:'var(--text-muted)'}}>This workspace is structurally complete; trade execution and the historical replay engine activate once connected to a real OHLC data source.</p>
+
+    <KitCard padding="0" style={{overflow:'hidden'}}>
+      <div style={{padding:'18px 20px',borderBottom:'1px solid var(--border-subtle)'}}>
+        <span style={{fontFamily:'var(--font-body)',fontWeight:700,fontSize:'var(--text-sm)'}}>Session trades</span>
+      </div>
+      {!closedTrades.length
+        ? <div style={{padding:'32px 20px',textAlign:'center',fontSize:'var(--text-sm)',color:'var(--text-tertiary)'}}>No trades closed yet this session.</div>
+        : <div className="fwg-tablewrap">
+            <div style={{minWidth:'720px'}}>
+              <table style={{width:'100%',borderCollapse:'collapse',fontSize:'var(--text-sm)'}}>
+                <thead><tr>
+                  {['Direction','Entry','Exit','Result','P/L','Closed by',''].map(h=>(
+                    <th key={h} style={{textAlign:'left',padding:'11px 16px',fontSize:'var(--text-2xs)',textTransform:'uppercase',letterSpacing:'0.1em',color:'var(--text-muted)',fontWeight:700,borderBottom:'1px solid var(--border-default)',background:'var(--surface-inset)'}}>{h}</th>
+                  ))}
+                </tr></thead>
+                <tbody>
+                  {[...closedTrades].reverse().map(t=>(
+                    <tr key={t.id}>
+                      <td style={{padding:'11px 16px',borderBottom:'1px solid var(--border-subtle)',fontWeight:700,color:t.direction==='Buy'?'var(--bullish)':'var(--bearish)'}}>{t.direction}</td>
+                      <td style={{padding:'11px 16px',borderBottom:'1px solid var(--border-subtle)',fontFamily:'var(--font-mono)'}}>{t.entry.toFixed(symbolMeta.decimals)}</td>
+                      <td style={{padding:'11px 16px',borderBottom:'1px solid var(--border-subtle)',fontFamily:'var(--font-mono)'}}>{t.exit.toFixed(symbolMeta.decimals)}</td>
+                      <td style={{padding:'11px 16px',borderBottom:'1px solid var(--border-subtle)',fontWeight:700,color:t.result==='Win'?'var(--bullish)':t.result==='Loss'?'var(--bearish)':'var(--text-tertiary)'}}>{t.result}</td>
+                      <td style={{padding:'11px 16px',borderBottom:'1px solid var(--border-subtle)',fontFamily:'var(--font-mono)',color:t.pnl>0?'var(--bullish)':t.pnl<0?'var(--bearish)':'var(--text-primary)'}}>{fwgFormatMoney(t.pnl)}</td>
+                      <td style={{padding:'11px 16px',borderBottom:'1px solid var(--border-subtle)',color:'var(--text-tertiary)'}}>{t.closedBy}</td>
+                      <td style={{padding:'11px 16px',borderBottom:'1px solid var(--border-subtle)'}}>
+                        {savedIds[t.id]
+                          ? <KitBadge tone="neutral" mono>Saved</KitBadge>
+                          : <button type="button" onClick={()=>saveTradeToJournal(t)} disabled={savingId===t.id}
+                              style={{padding:'6px 12px',borderRadius:'var(--radius-sm)',fontSize:'var(--text-xs)',fontWeight:700,cursor:savingId===t.id?'not-allowed':'pointer',background:'var(--accent-soft-bg)',border:'1px solid var(--border-gold)',color:'var(--text-gold)'}}>
+                              {savingId===t.id?'Saving…':'Save to journal'}
+                            </button>}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>}
+    </KitCard>
+    <p style={{fontSize:'var(--text-xs)',color:'var(--text-muted)',marginTop:'16px'}}>Chart data is a deterministic sample random walk generated for this workspace — it is not real market history, so results here don't validate a strategy against real trading. Trades you save go into your real Trading Journal tagged "BT".</p>
   </React.Fragment>;
 }
 

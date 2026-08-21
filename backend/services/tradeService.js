@@ -78,11 +78,12 @@ async function createTrade(userId, payload) {
   return toSafeTrade(res.rows[0]);
 }
 
-async function listTradesForUser(userId, { limit = 200, from, to } = {}) {
+async function listTradesForUser(userId, { limit = 200, from, to, accountId } = {}) {
   const conditions = ['user_id = $1'];
   const params = [userId];
   if (from) { params.push(from); conditions.push(`trade_date >= $${params.length}`); }
   if (to) { params.push(to); conditions.push(`trade_date <= $${params.length}`); }
+  if (accountId) { params.push(accountId); conditions.push(`account_id = $${params.length}`); }
   params.push(limit);
   const res = await db.query(
     `SELECT * FROM trades WHERE ${conditions.join(' AND ')} ORDER BY trade_date DESC, id DESC LIMIT $${params.length}`,
@@ -190,6 +191,55 @@ async function getDashboardStats(userId) {
   };
 }
 
+/* Same shape as getDashboardStats, but scoped to one trading account instead
+   of the user's whole history — this is what lets "Trading Accounts" show a
+   real, live current balance/P&L per account rather than just the static
+   starting balance, and what lets Backtesting seed a session from an
+   account's actual current balance. Ownership is enforced by the
+   `WHERE id=$1 AND user_id=$2` on the account row, same pattern as every
+   other account/trade query in this codebase. */
+async function getAccountStats(userId, accountId) {
+  const accRes = await db.query('SELECT * FROM trading_accounts WHERE id=$1 AND user_id=$2', [accountId, userId]);
+  if (!accRes.rows.length) { const e = new Error('Trading account not found.'); e.status = 404; throw e; }
+  const account = accRes.rows[0];
+  const startingBalance = Number(account.starting_balance);
+  const riskPerTradePct = account.risk_per_trade_pct === null ? null : Number(account.risk_per_trade_pct);
+  const maxDrawdownLimitPct = account.max_drawdown_pct === null ? null : Number(account.max_drawdown_pct);
+  const base = { name: account.name, startingBalance, riskPerTradePct, maxDrawdownLimitPct };
+
+  const tradesNewestFirst = await listTradesForUser(userId, { limit: 5000, accountId });
+  const hasTrades = tradesNewestFirst.length > 0;
+  if (!hasTrades) {
+    return {
+      ...base, hasTrades: false, accountBalance: startingBalance,
+      totalTrades: 0, winRate: null, profitLoss: 0, avgRiskReward: null,
+      maxDrawdownPct: 0, currentStreak: { count: 0, type: null },
+      equityCurve: [], recentTrades: [],
+    };
+  }
+
+  const tradesOldestFirst = [...tradesNewestFirst].reverse();
+  const wins = tradesNewestFirst.filter(t => t.result === 'Win').length;
+  const decisive = tradesNewestFirst.filter(t => t.result !== 'Breakeven').length;
+  const profitLoss = tradesNewestFirst.reduce((sum, t) => sum + t.pnl, 0);
+  const rrValues = tradesNewestFirst.map(t => t.riskReward).filter(v => v !== null && Number.isFinite(v));
+  const avgRiskReward = rrValues.length ? rrValues.reduce((a, b) => a + b, 0) / rrValues.length : null;
+
+  let running = startingBalance;
+  const equityCurve = [{ date: null, balance: running }];
+  for (const t of tradesOldestFirst) { running += t.pnl; equityCurve.push({ date: t.date, balance: running }); }
+
+  return {
+    ...base, hasTrades: true, accountBalance: startingBalance + profitLoss,
+    totalTrades: tradesNewestFirst.length,
+    winRate: decisive > 0 ? (wins / decisive) * 100 : null,
+    profitLoss, avgRiskReward,
+    maxDrawdownPct: computeMaxDrawdownPct(equityCurve),
+    currentStreak: computeCurrentStreak(tradesNewestFirst),
+    equityCurve, recentTrades: tradesNewestFirst.slice(0, 10),
+  };
+}
+
 async function setStartingBalance(userId, startingBalance) {
   if (startingBalance !== null && (isNaN(Number(startingBalance)) || Number(startingBalance) < 0)) {
     const error = new Error('Enter a valid, non-negative starting balance.');
@@ -279,4 +329,4 @@ async function getPerformanceStats(userId, { from, to } = {}) {
   };
 }
 
-module.exports = { createTrade, listTradesForUser, deleteTrade, getDashboardStats, setStartingBalance, getPerformanceStats };
+module.exports = { createTrade, listTradesForUser, deleteTrade, getDashboardStats, setStartingBalance, getPerformanceStats, getAccountStats };

@@ -71,15 +71,27 @@ function ClientAccountModal({ account, onClose, onSaved }) {
 function ClientTradingAccountsPage() {
   const [state, setState] = React.useState({ status:'loading', accounts:[] });
   const [modal, setModal] = React.useState(null); // null | 'new' | account object
+  const [stats, setStats] = React.useState({}); // accountId -> computed stats from trades tagged to it
+
+  const loadStats = React.useCallback(async (id) => {
+    try {
+      const res = await fetch(`${window.FWG_API_BASE}/api/trading-accounts/${id}/stats`, { credentials:'include' });
+      const data = await res.json().catch(()=>({}));
+      if (res.ok && data.success) setStats(s => ({ ...s, [id]: data.stats }));
+    } catch (err) {}
+  }, []);
 
   const load = React.useCallback(async () => {
     try {
       const res = await fetch(`${window.FWG_API_BASE}/api/trading-accounts`, { credentials:'include' });
       const data = await res.json().catch(()=>({}));
-      if (res.ok && data.success) setState({ status:'ready', accounts: data.accounts });
+      if (res.ok && data.success) {
+        setState({ status:'ready', accounts: data.accounts });
+        data.accounts.forEach(a => loadStats(a.id));
+      }
       else setState({ status:'error', accounts:[] });
     } catch (err) { setState({ status:'error', accounts:[] }); }
-  }, []);
+  }, [loadStats]);
   React.useEffect(() => { load(); }, [load]);
 
   const handleDelete = async (id) => {
@@ -101,8 +113,11 @@ function ClientTradingAccountsPage() {
 
     {state.status === 'ready' && state.accounts.length > 0 && (
       <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:'16px'}} className="fwg-grid-3">
-        {state.accounts.map(a=>(
-          <KitCard key={a.id}>
+        {state.accounts.map(a=>{
+          const s = stats[a.id];
+          const balance = s ? s.accountBalance : a.startingBalance;
+          const breach = s && s.hasTrades && a.maxDrawdownPct!=null && s.maxDrawdownPct > a.maxDrawdownPct;
+          return <KitCard key={a.id}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:'14px'}}>
               <div style={{width:'40px',height:'40px',borderRadius:'var(--radius-md)',background:'var(--accent-soft-bg)',border:'1px solid var(--border-gold)',display:'inline-flex',alignItems:'center',justifyContent:'center'}}>
                 <Icon name="wallet" size={18} color="var(--text-gold)"/>
@@ -113,13 +128,23 @@ function ClientTradingAccountsPage() {
               </div>
             </div>
             <div style={{fontSize:'var(--text-md)',fontWeight:700,marginBottom:'10px'}}>{a.name}</div>
-            <div style={{fontFamily:'var(--font-mono)',fontSize:'var(--text-lg)',fontWeight:700,marginBottom:'10px'}}>{fwgFormatMoney(a.startingBalance)}</div>
+            <div style={{fontFamily:'var(--font-mono)',fontSize:'var(--text-lg)',fontWeight:700,marginBottom:'6px'}}>{fwgFormatMoney(balance)}</div>
+            <div style={{fontSize:'var(--text-xs)',marginBottom:'10px',color:'var(--text-tertiary)'}}>
+              {!s && 'Loading performance…'}
+              {s && !s.hasTrades && 'No trades logged yet'}
+              {s && s.hasTrades && (
+                <span style={{color:s.profitLoss>=0?'var(--bullish)':'var(--bearish)',fontWeight:700}}>
+                  {s.profitLoss>=0?'+':''}{fwgFormatMoney(s.profitLoss)}
+                </span>
+              )}
+              {s && s.hasTrades && <span> · {s.totalTrades} trade{s.totalTrades===1?'':'s'}{s.winRate!=null?` · ${fwgFormatPct(s.winRate,0)} win rate`:''}</span>}
+            </div>
             <div style={{display:'flex',gap:'8px',flexWrap:'wrap'}}>
               {a.riskPerTradePct!=null && <KitBadge tone="neutral" mono>Risk {a.riskPerTradePct}%</KitBadge>}
-              {a.maxDrawdownPct!=null && <KitBadge tone="neutral" mono>Max DD {a.maxDrawdownPct}%</KitBadge>}
+              {a.maxDrawdownPct!=null && <KitBadge tone={breach?'bear':'neutral'} mono>{breach?'Over limit — ':'Max DD '}{a.maxDrawdownPct}%</KitBadge>}
             </div>
-          </KitCard>
-        ))}
+          </KitCard>;
+        })}
       </div>
     )}
 
@@ -324,44 +349,77 @@ function ClientCalendarPage() {
     return () => { cancelled = true; };
   }, []);
 
-  const impactColor = (impact) => impact==='high' ? 'var(--bearish)' : impact==='medium' ? 'var(--text-gold)' : 'var(--text-tertiary)';
+  const impactTone = (impact) => impact==='high' ? 'bear' : impact==='medium' ? 'gold' : 'neutral';
+
+  /* The free FairEconomy feed (economicCalendarService.js) only ever returns
+     the current week — there's no lastweek/nextweek variant available
+     without a paid provider — so "every week" here means this grouping
+     re-forms automatically as the feed rolls over week to week, not that
+     past/future weeks are browsable. */
+  const groups = React.useMemo(() => {
+    const byDay = new Map();
+    for (const ev of state.events) {
+      if (!ev.dateTime) continue;
+      const d = new Date(ev.dateTime);
+      const key = d.toDateString();
+      if (!byDay.has(key)) byDay.set(key, { date: d, events: [] });
+      byDay.get(key).events.push(ev);
+    }
+    return [...byDay.values()].sort((a,b) => a.date - b.date);
+  }, [state.events]);
+  const todayKey = new Date().toDateString();
 
   return <React.Fragment>
-    <h1 style={{fontFamily:'var(--font-display)',fontWeight:800,fontSize:'var(--text-2xl)',letterSpacing:'var(--ls-tight)',margin:'0 0 20px'}}>Economic Calendar</h1>
+    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:'12px',marginBottom:'20px'}}>
+      <h1 style={{fontFamily:'var(--font-display)',fontWeight:800,fontSize:'var(--text-2xl)',letterSpacing:'var(--ls-tight)',margin:0}}>Economic Calendar</h1>
+      <KitBadge tone="neutral" mono>Live — this week, refreshes automatically</KitBadge>
+    </div>
 
     {state.status === 'loading' && <KitCard><div style={{padding:'40px',textAlign:'center',color:'var(--text-tertiary)',fontSize:'var(--text-sm)'}}>Loading the calendar…</div></KitCard>}
     {state.status === 'error' && <KitCard><div style={{padding:'40px',textAlign:'center',color:'var(--text-secondary)',fontSize:'var(--text-sm)'}}>Couldn't load the calendar right now. Please refresh the page.</div></KitCard>}
-    {state.status === 'ready' && state.events.length === 0 && <ClientComingSoon icon="calendar-days" title="No events found" description="Check back shortly for upcoming economic events." />}
+    {state.status === 'ready' && groups.length === 0 && <ClientComingSoon icon="calendar-days" title="No events found" description="Check back shortly for upcoming economic events." />}
 
-    {state.status === 'ready' && state.events.length > 0 && (
-      <KitCard padding="0" style={{overflow:'hidden'}}>
-        <div className="fwg-tablewrap">
-          <div style={{minWidth:'760px'}}>
-            <table style={{width:'100%',borderCollapse:'collapse',fontSize:'var(--text-sm)'}}>
-              <thead>
-                <tr>
-                  {['Time','Currency','Event','Impact','Previous','Forecast','Actual'].map(h=>(
-                    <th key={h} style={{textAlign:'left',padding:'10px 14px',fontSize:'var(--text-2xs)',textTransform:'uppercase',letterSpacing:'0.08em',color:'var(--text-muted)',fontWeight:700,borderBottom:'1px solid var(--border-default)',background:'var(--surface-inset)'}}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {state.events.slice(0,60).map(ev=>(
-                  <tr key={ev.id}>
-                    <td style={{padding:'10px 14px',borderBottom:'1px solid var(--border-subtle)',color:'var(--text-secondary)',whiteSpace:'nowrap'}}>{ev.dateTime ? new Date(ev.dateTime).toLocaleString([], {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) : '—'}</td>
-                    <td style={{padding:'10px 14px',borderBottom:'1px solid var(--border-subtle)',fontWeight:700}}>{ev.currency}</td>
-                    <td style={{padding:'10px 14px',borderBottom:'1px solid var(--border-subtle)'}}>{ev.title}</td>
-                    <td style={{padding:'10px 14px',borderBottom:'1px solid var(--border-subtle)',fontWeight:700,color:impactColor(ev.impact),textTransform:'capitalize'}}>{ev.impact}</td>
-                    <td style={{padding:'10px 14px',borderBottom:'1px solid var(--border-subtle)',fontFamily:'var(--font-mono)',color:'var(--text-tertiary)'}}>{ev.previous || '—'}</td>
-                    <td style={{padding:'10px 14px',borderBottom:'1px solid var(--border-subtle)',fontFamily:'var(--font-mono)',color:'var(--text-tertiary)'}}>{ev.forecast || '—'}</td>
-                    <td style={{padding:'10px 14px',borderBottom:'1px solid var(--border-subtle)',fontFamily:'var(--font-mono)'}}>{ev.actual || '—'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </KitCard>
+    {state.status === 'ready' && groups.length > 0 && (
+      <div style={{display:'flex',flexDirection:'column',gap:'16px'}}>
+        {groups.map(g=>{
+          const isToday = g.date.toDateString()===todayKey;
+          return <KitCard key={g.date.toDateString()} padding="0" style={{overflow:'hidden', border: isToday?'1px solid var(--border-gold)':undefined}}>
+            <div style={{padding:'14px 18px',borderBottom:'1px solid var(--border-subtle)',display:'flex',alignItems:'center',gap:'10px',flexWrap:'wrap',background:isToday?'var(--accent-soft-bg)':'var(--surface-inset)'}}>
+              <span style={{fontWeight:700,fontSize:'var(--text-sm)',color:isToday?'var(--text-gold)':'var(--text-primary)'}}>
+                {g.date.toLocaleDateString([], { weekday:'long', month:'long', day:'numeric' })}
+              </span>
+              {isToday && <KitBadge tone="gold" mono>Today</KitBadge>}
+              <span style={{marginLeft:'auto',fontSize:'var(--text-xs)',color:'var(--text-muted)'}}>{g.events.length} event{g.events.length===1?'':'s'}</span>
+            </div>
+            <div className="fwg-tablewrap">
+              <div style={{minWidth:'700px'}}>
+                <table style={{width:'100%',borderCollapse:'collapse',fontSize:'var(--text-sm)'}}>
+                  <thead>
+                    <tr>
+                      {['Time','Currency','Event','Impact','Previous','Forecast','Actual'].map(h=>(
+                        <th key={h} style={{textAlign:'left',padding:'10px 14px',fontSize:'var(--text-2xs)',textTransform:'uppercase',letterSpacing:'0.08em',color:'var(--text-muted)',fontWeight:700,borderBottom:'1px solid var(--border-default)'}}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {g.events.map(ev=>(
+                      <tr key={ev.id}>
+                        <td style={{padding:'10px 14px',borderBottom:'1px solid var(--border-subtle)',color:'var(--text-secondary)',whiteSpace:'nowrap'}}>{new Date(ev.dateTime).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</td>
+                        <td style={{padding:'10px 14px',borderBottom:'1px solid var(--border-subtle)',fontWeight:700}}>{ev.currency}</td>
+                        <td style={{padding:'10px 14px',borderBottom:'1px solid var(--border-subtle)'}}>{ev.title}</td>
+                        <td style={{padding:'10px 14px',borderBottom:'1px solid var(--border-subtle)'}}>{ev.impact ? <KitBadge tone={impactTone(ev.impact)} mono>{ev.impact}</KitBadge> : '—'}</td>
+                        <td style={{padding:'10px 14px',borderBottom:'1px solid var(--border-subtle)',fontFamily:'var(--font-mono)',color:'var(--text-tertiary)'}}>{ev.previous || '—'}</td>
+                        <td style={{padding:'10px 14px',borderBottom:'1px solid var(--border-subtle)',fontFamily:'var(--font-mono)',color:'var(--text-tertiary)'}}>{ev.forecast || '—'}</td>
+                        <td style={{padding:'10px 14px',borderBottom:'1px solid var(--border-subtle)',fontFamily:'var(--font-mono)'}}>{ev.actual || '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </KitCard>;
+        })}
+      </div>
     )}
   </React.Fragment>;
 }

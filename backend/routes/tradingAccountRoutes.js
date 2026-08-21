@@ -1,5 +1,5 @@
 const express = require('express');
-const { getAccounts, postAccount, putAccount, deleteAccountHandler } = require('../controllers/tradingAccountController');
+const { getAccounts, postAccount, putAccount, deleteAccountHandler, getAccountStats } = require('../controllers/tradingAccountController');
 const { requireAuth } = require('../middleware/requireAuth');
 
 const router = express.Router();
@@ -7,6 +7,7 @@ router.use(requireAuth);
 
 router.get('/', getAccounts);
 router.post('/', postAccount);
+router.get('/:id/stats', getAccountStats);
 router.put('/:id', putAccount);
 router.delete('/:id', deleteAccountHandler);
 
