@@ -16,8 +16,18 @@ function getPool() {
     throw error;
   }
   if (!pool) {
+    /* A `sslmode=require` (or similar) query param on the connection string
+       makes `pg` derive its own strict TLS behavior from the URL, which can
+       fight with — and override — the `ssl` option below, producing a
+       "self-signed certificate in certificate chain" error even though
+       rejectUnauthorized:false is set. Stripping it here means our explicit
+       ssl option is the only thing governing TLS. rejectUnauthorized:false
+       is standard practice for managed Postgres providers (Supabase, Neon,
+       Vercel Postgres) whose certificate chains aren't in Node's default
+       trust store — the connection itself is still encrypted either way. */
+    const cleanUrl = databaseUrl.replace(/([?&])sslmode=[^&]*&?/i, '$1').replace(/[?&]$/, '');
     pool = new Pool({
-      connectionString: databaseUrl,
+      connectionString: cleanUrl,
       max: 1,
       ssl: databaseUrl.includes('sslmode=disable') ? false : { rejectUnauthorized: false },
     });
