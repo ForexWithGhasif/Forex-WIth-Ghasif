@@ -9,6 +9,8 @@ const marketDataRoutes = require('./routes/marketDataRoutes');
 const economicCalendarRoutes = require('./routes/economicCalendarRoutes');
 const authRoutes = require('./routes/authRoutes');
 const tradeRoutes = require('./routes/tradeRoutes');
+const tradingAccountRoutes = require('./routes/tradingAccountRoutes');
+const tradingPlanRoutes = require('./routes/tradingPlanRoutes');
 
 const app = express();
 
@@ -33,6 +35,8 @@ app.use('/api/market-prices', marketDataRoutes);
 app.use('/api/economic-calendar', economicCalendarRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/trades', tradeRoutes);
+app.use('/api/trading-accounts', tradingAccountRoutes);
+app.use('/api/trading-plans', tradingPlanRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ success: false, message: 'Not found' });

@@ -20,6 +20,9 @@
     { "source": "/client/journal", "destination": "/ui_kits/website/client/journal.html" },
     { "source": "/client/performance", "destination": "/ui_kits/website/client/performance.html" },
     { "source": "/client/settings", "destination": "/ui_kits/website/client/settings.html" },
-    { "source": "/client/trading-plan", "destination": "/ui_kits/website/client/trading-plan.html" }
+    { "source": "/client/trading-plan", "destination": "/ui_kits/website/client/trading-plan.html" },
+    { "source": "/client/accounts", "destination": "/ui_kits/website/client/accounts.html" },
+    { "source": "/client/markets", "destination": "/ui_kits/website/client/markets.html" },
+    { "source": "/client/calendar", "destination": "/ui_kits/website/client/calendar.html" }
   ]
 }

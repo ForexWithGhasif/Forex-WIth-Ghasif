@@ -15,8 +15,18 @@ async function postTrade(req, res, next) {
 
 async function getTrades(req, res, next) {
   try {
-    const trades = await tradeService.listTradesForUser(req.userId);
+    const { from, to } = req.query;
+    const trades = await tradeService.listTradesForUser(req.userId, { from, to });
     res.status(200).json({ success: true, trades });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function deleteTradeHandler(req, res, next) {
+  try {
+    await tradeService.deleteTrade(req.userId, req.params.id);
+    res.status(200).json({ success: true });
   } catch (err) {
     next(err);
   }
@@ -25,6 +35,16 @@ async function getTrades(req, res, next) {
 async function getDashboard(req, res, next) {
   try {
     const stats = await tradeService.getDashboardStats(req.userId);
+    res.status(200).json({ success: true, stats });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function getPerformance(req, res, next) {
+  try {
+    const { from, to } = req.query;
+    const stats = await tradeService.getPerformanceStats(req.userId, { from, to });
     res.status(200).json({ success: true, stats });
   } catch (err) {
     next(err);
@@ -42,4 +62,4 @@ async function putStartingBalance(req, res, next) {
   }
 }
 
-module.exports = { postTrade, getTrades, getDashboard, putStartingBalance };
+module.exports = { postTrade, getTrades, deleteTradeHandler, getDashboard, getPerformance, putStartingBalance };
