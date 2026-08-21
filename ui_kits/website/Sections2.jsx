@@ -31,6 +31,113 @@ function Performance() {
   </Container></Section>;
 }
 
+/* Live Markets: the official TradingView "Advanced Real-Time Chart" widget
+   (tv.js, loaded as a plain script tag in index.html — see the head there),
+   not a custom or simulated chart. It ships its own full toolbar (symbol
+   search, timeframes, drawing tools, indicators), so this component only
+   needs to instantiate it into a container and frame it to match the site. */
+function fwgRequestFullscreen(el) {
+  const fn = el.requestFullscreen || el.webkitRequestFullscreen;
+  if (fn) fn.call(el);
+}
+function fwgExitFullscreen() {
+  const fn = document.exitFullscreen || document.webkitExitFullscreen;
+  if (fn) fn.call(document);
+}
+function fwgFullscreenElement() {
+  return document.fullscreenElement || document.webkitFullscreenElement || null;
+}
+function fwgFullscreenSupported() {
+  return !!(document.fullscreenEnabled || document.webkitFullscreenEnabled);
+}
+
+function LiveMarkets() {
+  const containerRef = React.useRef(null);
+  const frameRef = React.useRef(null);
+  const idRef = React.useRef('fwg-tv-widget-' + Math.random().toString(36).slice(2));
+  const [isFullscreen, setIsFullscreen] = React.useState(false);
+  const [fsSupported] = React.useState(fwgFullscreenSupported);
+
+  React.useEffect(() => {
+    const onChange = () => setIsFullscreen(fwgFullscreenElement() === frameRef.current);
+    document.addEventListener('fullscreenchange', onChange);
+    document.addEventListener('webkitfullscreenchange', onChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', onChange);
+      document.removeEventListener('webkitfullscreenchange', onChange);
+    };
+  }, []);
+
+  const toggleFullscreen = () => {
+    if (fwgFullscreenElement()) fwgExitFullscreen();
+    else if (frameRef.current) fwgRequestFullscreen(frameRef.current);
+  };
+
+  React.useEffect(() => {
+    let cancelled = false;
+    let pollId = null;
+    let timeoutId = null;
+
+    function init() {
+      if (cancelled || !containerRef.current) return;
+      new window.TradingView.widget({
+        autosize: true,
+        symbol: 'FX:EURUSD',
+        interval: 'D',
+        timezone: 'Etc/UTC',
+        theme: 'dark',
+        style: '1',
+        locale: 'en',
+        toolbar_bg: '#131722',
+        enable_publishing: false,
+        allow_symbol_change: true,
+        hide_side_toolbar: false,
+        withdateranges: true,
+        details: false,
+        hotlist: false,
+        calendar: false,
+        container_id: idRef.current,
+      });
+    }
+
+    if (window.TradingView) {
+      init();
+    } else {
+      /* tv.js is a plain blocking <script> tag loaded before the app's own
+         scripts, so it should already be ready by the time this effect
+         runs — this poll is just a safety net in case that ever changes. */
+      pollId = setInterval(() => {
+        if (window.TradingView) { clearInterval(pollId); init(); }
+      }, 150);
+      timeoutId = setTimeout(() => clearInterval(pollId), 10000);
+    }
+
+    return () => { cancelled = true; clearInterval(pollId); clearTimeout(timeoutId); };
+  }, []);
+
+  return <Section id="live-markets" data-reveal="up"><Container>
+    <Head align="center" kicker="Real-time" title="Live Markets"
+      lead="A full TradingView chart, right on our site — forex pairs, gold, and anything else you want to pull up." />
+    <div ref={frameRef} className="fwg-tv-chart-wrap" style={{position:'relative',display:'flex',flexDirection:'column',borderRadius:'var(--radius-2xl)',border:'1px solid var(--border-gold)',boxShadow:'var(--glow-gold-sm), var(--shadow-xl)',overflow:'hidden',background:'#131722'}}>
+      <div ref={containerRef} id={idRef.current} style={{flex:1,minHeight:0}}/>
+      {fsSupported && (
+        <div style={{flexShrink:0,display:'flex',justifyContent:'center',padding:'14px',borderTop:'1px solid rgba(255,255,255,0.08)',background:'linear-gradient(180deg, #131722, #0d1019)'}}>
+          <button type="button" onClick={toggleFullscreen} aria-label={isFullscreen?'Exit fullscreen':'View chart in fullscreen'}
+            style={{display:'inline-flex',alignItems:'center',gap:'9px',padding:'10px 22px',borderRadius:'var(--radius-pill)',cursor:'pointer',
+              background:'var(--grad-gold-soft)',border:'none',color:'#1a1405',
+              fontSize:'var(--text-xs)',fontWeight:700,letterSpacing:'var(--ls-wide)',textTransform:'uppercase',
+              boxShadow:'var(--glow-gold-sm)',transition:'transform var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out)'}}
+            onMouseEnter={e=>{e.currentTarget.style.transform='translateY(-2px)';e.currentTarget.style.boxShadow='var(--glow-gold-md)';}}
+            onMouseLeave={e=>{e.currentTarget.style.transform='translateY(0)';e.currentTarget.style.boxShadow='var(--glow-gold-sm)';}}>
+            <Icon name={isFullscreen?'minimize':'maximize'} size={15}/>
+            {isFullscreen?'Exit Fullscreen':'View Fullscreen'}
+          </button>
+        </div>
+      )}
+    </div>
+  </Container></Section>;
+}
+
 function Testimonials() {
   const t=[
     ['Before learning from Ghasif, I was entering trades without really understanding why. His lessons on market structure, liquidity, and risk management helped me look at the market with a completely different mindset.','Hamza R.'],

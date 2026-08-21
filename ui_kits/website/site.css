@@ -69,6 +69,20 @@ body { background: transparent; overflow-x: hidden; }
 .fwg-wa-card-arrow { display: inline-flex; transition: transform var(--dur-fast) var(--ease-out); }
 .fwg-wa-card:hover .fwg-wa-card-arrow { transform: translateX(4px); }
 
+/* Live Markets: TradingView's widget uses autosize, which fills whatever
+   height this wrapper has — so the responsive sizing lives here, not in
+   widget config. Roomy on desktop for the full toolbar; still usable but
+   more compact on phones. */
+.fwg-tv-chart-wrap { height: 600px; }
+@media (max-width: 900px) { .fwg-tv-chart-wrap { height: 520px; } }
+@media (max-width: 640px) { .fwg-tv-chart-wrap { height: 460px; } }
+/* Fullscreen toggle: the browser's native Fullscreen API is used on this
+   same wrapper (see LiveMarkets), so it just needs to actually fill the
+   screen edge-to-edge instead of staying pinned to its normal card height. */
+.fwg-tv-chart-wrap:fullscreen, .fwg-tv-chart-wrap:-webkit-full-screen {
+  height: 100vh !important; width: 100vw !important; border-radius: 0; border: none; box-shadow: none;
+}
+
 .fwg-menu-btn { display: none; }
 
 @media (max-width: 1040px) {

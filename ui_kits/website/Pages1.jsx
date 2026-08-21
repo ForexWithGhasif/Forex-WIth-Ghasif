@@ -68,6 +68,7 @@ function HomePage() {
       <ServicesPreview />
       <IntroBand />
       <Testimonials />
+      <LiveMarkets />
       <CTASection />
     </Reveal>
   </React.Fragment>;
