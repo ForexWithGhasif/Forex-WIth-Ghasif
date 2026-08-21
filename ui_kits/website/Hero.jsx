@@ -8,16 +8,26 @@ const HERO_TICKS_FALLBACK=[
   {pair:'AUD/USD',price:'0.6512',chg:'+0.24%',dir:'up'},
 ];
 
+function fwgFormatUpdatedAt(iso){
+  if(!iso) return null;
+  try{ return new Date(iso).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'}); }
+  catch(e){ return null; }
+}
+
 function Hero() {
-  const ticks=useLiveTicks(HERO_TICKS_FALLBACK);
+  const {ticks,updatedAt,status}=useLiveTicks(HERO_TICKS_FALLBACK);
   const memberCount=useLiveMemberCount();
+  const updatedLabel=fwgFormatUpdatedAt(updatedAt);
+  const liveBadge = status==='stale' ? {tone:'neutral',label:'Delayed'}
+    : status==='error' ? {tone:'neutral',label:'Reconnecting'}
+    : {tone:'bull',label:'Live'};
   return (
     <section id="top" style={{position:'relative',overflow:'hidden',padding:'calc(var(--space-9) + 20px) var(--gutter) var(--space-10)'}}>
       <div style={{position:'absolute',inset:0,background:'var(--hero-glow)',pointerEvents:'none'}}/>
       <div style={{position:'absolute',inset:0,backgroundImage:'linear-gradient(var(--border-subtle) 1px, transparent 1px), linear-gradient(90deg, var(--border-subtle) 1px, transparent 1px)',backgroundSize:'64px 64px',maskImage:'radial-gradient(70% 60% at 50% 30%, #000, transparent 80%)',WebkitMaskImage:'radial-gradient(70% 60% at 50% 30%, #000, transparent 80%)',opacity:0.5,pointerEvents:'none'}}/>
       <div style={{position:'relative',maxWidth:'var(--container-xl)',margin:'0 auto',display:'grid',gridTemplateColumns:'1.05fr 0.95fr',gap:'var(--space-8)',alignItems:'center'}} className="fwg-hero-grid">
         <div style={{display:'flex',flexDirection:'column',gap:'var(--space-5)',maxWidth:'600px'}} className="fwg-hero-content">
-          <KitBadge tone="gold" dot>Premium forex education &amp; signals</KitBadge>
+          <KitBadge tone="gold" dot style={{width:'fit-content'}}>Premium forex education &amp; signals</KitBadge>
           <h1 style={{fontFamily:'var(--font-display)',fontWeight:800,fontSize:'var(--text-4xl)',lineHeight:1.02,letterSpacing:'var(--ls-tighter)',margin:0}}>
             Trade with <span className="fwg-gold-text">conviction</span>, not luck.
           </h1>
@@ -25,7 +35,7 @@ function Hero() {
             Institutional-grade signals, live market breakdowns, and 1:1 mentorship, built to make you a consistent trader, not a gambler.
           </p>
           <div style={{display:'flex',gap:'12px',flexWrap:'wrap',marginTop:'4px'}}>
-            <KitButton as="a" href="/pricing" variant="primary" size="lg" iconRight={<Icon name="arrow-up-right" size={18}/>}>Join VIP Signals</KitButton>
+            <KitButton as="a" href="/pricing" variant="primary" size="lg" iconRight={<Icon name="arrow-up-right" size={18}/>}>View Pricing</KitButton>
             <KitButton as="a" href="/performance" variant="secondary" size="lg" iconLeft={<Icon name="line-chart" size={18}/>}>See the track record</KitButton>
           </div>
           <div style={{display:'flex',gap:'var(--space-7)',marginTop:'var(--space-4)',flexWrap:'wrap'}}>
@@ -40,7 +50,7 @@ function Hero() {
           <KitCard padding="0" style={{overflow:'hidden'}}>
             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'16px 18px',borderBottom:'1px solid var(--border-subtle)'}}>
               <div style={{display:'flex',alignItems:'center',gap:'10px'}}>
-                <KitBadge tone="bull" dot>Live</KitBadge>
+                <KitBadge tone={liveBadge.tone} dot>{liveBadge.label}</KitBadge>
                 <span style={{fontFamily:'var(--font-body)',fontWeight:700,fontSize:'var(--text-sm)'}}>Signal performance</span>
               </div>
               <span style={{fontFamily:'var(--font-mono)',fontSize:'var(--text-xs)',color:'var(--text-tertiary)'}}>30D</span>
@@ -66,6 +76,13 @@ function Hero() {
                 </div>
               ))}
             </div>
+            {(updatedLabel || status==='error') && (
+              <div style={{padding:'0 14px 14px',fontSize:'var(--text-2xs)',color:status==='error'?'var(--bearish)':'var(--text-muted)'}}>
+                {status==='error'
+                  ? 'Data temporarily unavailable — showing last known prices.'
+                  : `Updated ${updatedLabel}${status==='stale'?' · refreshing…':''}`}
+              </div>
+            )}
           </KitCard>
         </div>
       </div>

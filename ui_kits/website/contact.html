@@ -19,7 +19,7 @@
 <link rel="stylesheet" href="/ui_kits/website/site.css" />
 </head>
 <body>
-<div id="root"></div>
+<div id="root"><div id="fwg-preloader"><img src="/assets/fwg-logo.png" alt="" /></div></div>
 
 <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
@@ -34,8 +34,7 @@
 <script type="text/babel" src="/ui_kits/website/Sections.jsx"></script>
 <script type="text/babel" src="/ui_kits/website/Sections2.jsx"></script>
 <script type="text/babel" src="/ui_kits/website/Pages1.jsx"></script>
-<script type="text/babel" src="/ui_kits/website/Pages2.jsx"></script>
-<script type="text/babel" data-presets="react">
+<script type="text/babel" src="/ui_kits/website/Pages2.jsx"></script><script type="text/babel" data-presets="react">
   ReactDOM.createRoot(document.getElementById('root')).render(
     <Layout active="contact"><ContactPage /></Layout>
   );

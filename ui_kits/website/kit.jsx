@@ -113,29 +113,40 @@ function LazyImg({src,alt='',style,eager=false,imgProps={}}) {
   return <img ref={ref} src={shown?src:undefined} alt={alt} decoding="async" style={style} {...imgProps}/>;
 }
 
-/* Live market prices: fetches the backend's /api/market-prices, refreshes every
-   5 minutes, and falls back to the given static defaults if the fetch fails so
-   the UI never breaks or goes empty. Shared by every section that shows ticks. */
+/* Live market prices: fetches the backend's /api/market-prices (itself backed
+   by a real Yahoo Finance quote feed, not simulated data), refreshes every 60
+   seconds, and never fabricates a number. Three states:
+     'live'  — the last poll succeeded with a fresh quote
+     'stale' — our backend's own upstream feed failed, so it served its last
+               known-good quote (flagged `stale` in the response) instead of
+               inventing one; still real data, just not brand new
+     'error' — this client couldn't reach our backend at all this cycle; the
+               last good ticks/updatedAt are kept on screen unchanged
+   Shared by every section that shows ticks, so there's one source of truth. */
+const LIVE_TICKS_POLL_MS = 60 * 1000;
 function useLiveTicks(fallback) {
-  const [ticks,setTicks]=React.useState(fallback);
+  const [state,setState]=React.useState({ ticks: fallback, updatedAt: null, status: 'loading' });
   React.useEffect(()=>{
     let cancelled=false;
     const load=async()=>{
       try{
         const res=await fetch(`${window.FWG_API_BASE}/api/market-prices`);
         const data=await res.json().catch(()=>null);
-        if(!cancelled && res.ok && data && data.success && Array.isArray(data.data) && data.data.length){
-          setTicks(data.data);
+        if(cancelled) return;
+        if(res.ok && data && data.success && Array.isArray(data.data) && data.data.length){
+          setState({ ticks: data.data, updatedAt: data.updatedAt || new Date().toISOString(), status: data.stale ? 'stale' : 'live' });
+        } else {
+          setState(s=>({ ...s, status: 'error' }));
         }
       }catch(err){
-        // keep showing the last known/fallback ticks on failure
+        if(!cancelled) setState(s=>({ ...s, status: 'error' }));
       }
     };
     load();
-    const id=setInterval(load,5*60*1000);
+    const id=setInterval(load,LIVE_TICKS_POLL_MS);
     return ()=>{ cancelled=true; clearInterval(id); };
   },[]);
-  return ticks;
+  return state;
 }
 
 /* Live "active members" count: a shared value between 5 and 20, re-rolled
@@ -159,14 +170,66 @@ function useLiveMemberCount(){
 
 Object.assign(window,{KitButton,KitBadge,KitCard,KitStat,KitKicker,Icon,SocialGlyph,LazyImg,useLiveTicks,useLiveMemberCount});
 
-/* Official social/contact destinations (single source of truth). */
+/* Official social/contact destinations (single source of truth). There's no
+   payment processor in this project (see backend/routes) — every paid CTA is
+   a WhatsApp deep-link with a prefilled, product-specific message, which is
+   the site's actual "checkout" mechanism today. */
 window.FWG_SOCIAL = {
   instagram: 'https://www.instagram.com/forexwithghasif/',
   facebook:  'https://www.facebook.com/share/18oPFFMWEm/',
   whatsapp:  'https://wa.me/923047488945?text=Hi%2C%20I%20visited%20your%20website%20and%20would%20like%20to%20know%20more%20about%20your%20trading%20services.',
   whatsappMentorship: 'https://wa.me/923047488945?text=Hi%2C%20I%20want%20to%20join%20your%20Live%20Mentorship%20Plan.%20Can%20you%20please%20tell%20me%20how%20to%20complete%20the%20payment%20Process%20and%20get%20started%3F',
   whatsappCommunity: 'https://chat.whatsapp.com/CIx7qpadbjb43oCTHKN8Zh',
+  whatsappMasterclass: 'https://wa.me/923047488945?text=Hi%2C%20I%27d%20like%20to%20enroll%20in%20the%20Forex%20Masterclass%20(%2429%2C%20one-time).%20Can%20you%20tell%20me%20how%20to%20get%20started%3F',
+  whatsappSignals: 'https://wa.me/923047488945?text=Hi%2C%20I%27d%20like%20to%20join%20Premium%20Signals%20(%2415%2Fmonth).%20Can%20you%20tell%20me%20how%20to%20get%20started%3F',
+  whatsappBundle: 'https://wa.me/923047488945?text=Hi%2C%20I%27d%20like%20to%20claim%20the%20special%20offer%20on%20the%20Forex%20Trader%20Pro%20Bundle%20(%2439%2Fmonth).%20Can%20you%20tell%20me%20how%20to%20get%20started%3F',
 };
+
+/* Product catalog (single source of truth) — every price, feature list, and
+   CTA on the Pricing page, comparison table, and Course page reads from this
+   one array instead of being duplicated per component. No product exceeds $50.
+   Billing is always one of: 'free' | 'one-time' | 'monthly', shown explicitly
+   everywhere a price appears so recurring vs one-time is never ambiguous. */
+window.FWG_PRODUCTS = [
+  {
+    id: 'free', name: 'Free Community', shortName: 'Free',
+    price: '$0', billing: 'free', billingLabel: 'Free',
+    tagline: 'Start learning the fundamentals and follow educational market analysis.',
+    features: ['Educational market analysis', 'Example trade setups', 'Weekly market review', 'Gold & major pairs', 'Trading education content', 'Community access'],
+    cta: 'Join Free', href: window.FWG_SOCIAL.whatsappCommunity,
+  },
+  {
+    id: 'masterclass', name: 'Forex Masterclass', shortName: 'Masterclass',
+    price: '$29', billing: 'one-time', billingLabel: 'One-time payment',
+    badge: 'Complete course',
+    tagline: 'A structured, 12-module course from fundamentals through backtesting.',
+    features: ['12 structured modules', 'Beginner → intermediate progression', 'Trading strategy framework', 'Risk-management framework', 'Trading psychology lessons', 'Trade-journal framework', 'Backtesting framework', 'Demo-trading exercises', 'Structured learning path'],
+    cta: 'View Course', href: '/course',
+  },
+  {
+    id: 'signals', name: 'Premium Signals', shortName: 'Signals',
+    price: '$15', billing: 'monthly', billingLabel: 'Recurring monthly',
+    tagline: 'Structured market analysis and trade ideas for extra market guidance.',
+    features: ['Market analysis', 'Example trade setups', 'Entry area', 'Stop-loss level', 'Target levels', 'Gold & major pairs', 'Market updates', 'Private alerts'],
+    cta: 'Get Premium Signals', href: window.FWG_SOCIAL.whatsappSignals,
+  },
+  {
+    id: 'mentorship', name: '1:1 Trading Mentorship', shortName: 'Mentorship',
+    price: '$20', billing: 'monthly', billingLabel: 'Recurring monthly',
+    tagline: 'Personalized guidance and accountability to build a structured process.',
+    features: ['Personalized trading-plan review', '2× monthly 1:1 calls', 'Trade journal review', 'Risk-management guidance', 'Trading psychology coaching', 'Personalized feedback', 'Direct mentor access'],
+    cta: 'Join Mentorship', href: window.FWG_SOCIAL.whatsappMentorship,
+  },
+  {
+    id: 'bundle', name: 'Forex Trader Pro Bundle', shortName: 'Pro Bundle',
+    price: '$39', originalPrice: '$64', billing: 'monthly', billingLabel: 'Recurring monthly',
+    badge: 'Best value', offerBadge: 'Special offer', featured: true,
+    tagline: 'Get the complete trading education, market guidance, and personalized mentorship experience in one premium membership.',
+    features: ['Complete Forex Masterclass', 'Premium Trading Signals', '1:1 Trading Mentorship', '2× monthly 1:1 calls', 'Personalized trade-plan reviews', 'Trade journal review', 'Risk-management framework', 'Trading psychology guidance', 'Market analysis', 'Premium community access'],
+    cta: 'Get The Complete Bundle', href: window.FWG_SOCIAL.whatsappBundle,
+    secondaryText: 'Everything you need to build a more structured trading process.',
+  },
+];
 
 /* Backend API base (single source of truth). Same-origin in production;
    falls back to the local dev server when opened via file:// or localhost. */

@@ -65,42 +65,47 @@ function PerformancePage() {
       <Performance />
       <ResultsTable />
       <Transparency />
-      <CTASection />
     </Reveal>
   </React.Fragment>;
 }
 
 /* ============================ PRICING ============================ */
+/* Sourced from window.FWG_PRODUCTS (kit.jsx) — headers and column order
+   always match the pricing cards above, no separate hardcoded product list. */
 function ComparisonTable() {
   const feats=[
-    ['Weekly market recap',true,true,true],
-    ['Education library',true,true,true],
-    ['Community access',true,true,true],
-    ['Daily VIP signals',false,true,true],
-    ['Full trade plans',false,true,true],
-    ['Weekly live review',false,true,true],
-    ['1:1 mentorship calls',false,false,true],
-    ['Personal trade-plan reviews',false,false,true],
-    ['Direct access to Ghasif',false,false,true],
+    ['Educational content',true,true,true,true,true],
+    ['Masterclass (12 modules)',false,true,false,false,true],
+    ['Market analysis',true,false,true,true,true],
+    ['Premium signals',false,false,true,false,true],
+    ['1:1 calls',false,false,false,true,true],
+    ['Trade-plan / journal review',false,false,false,true,true],
+    ['Risk-management framework','Basic',true,false,true,true],
+    ['Trading psychology','Basic',true,false,true,true],
+    ['Community access',true,'Optional',true,true,true],
   ];
-  const cell=(v)=> v
-    ? <Icon name="check" size={18} color="var(--bullish)"/>
-    : <Icon name="minus" size={16} color="var(--text-muted)"/>;
+  const cell=(v)=>{
+    if(v===true) return <Icon name="check" size={17} color="var(--bullish)"/>;
+    if(v===false) return <Icon name="minus" size={15} color="var(--text-muted)"/>;
+    return <span style={{fontSize:'var(--text-xs)',fontWeight:600,color:'var(--text-tertiary)'}}>{v}</span>;
+  };
+  const products = window.FWG_PRODUCTS || [];
   return <Section style={{background:'var(--bg-elevated)'}}><Container>
-    <Head align="center" kicker="Compare plans" title="What’s included" />
+    <Head align="center" kicker="Compare plans" title="What's included in each product" />
     <KitCard padding="0" style={{overflow:'hidden'}}>
       <div className="fwg-tablewrap">
-      <div style={{display:'grid',gridTemplateColumns:'1.6fr 1fr 1fr'}}>
-        {['Feature','VIP','Mentorship'].map((h,i)=>(
-          <div key={h} style={{padding:'16px 18px',fontFamily:'var(--font-body)',fontSize:'var(--text-sm)',fontWeight:700,
-            color:i===2?'var(--text-gold)':'var(--text-primary)',borderBottom:'1px solid var(--border-default)',textAlign:i===0?'left':'center',
-            background:i===2?'var(--accent-soft-bg)':'transparent'}}>{h}</div>
+      <div className="fwg-table" style={{display:'grid',gridTemplateColumns:'1.7fr repeat(5,1fr)',minWidth:'760px'}}>
+        <div style={{padding:'16px 18px',fontFamily:'var(--font-body)',fontSize:'var(--text-sm)',fontWeight:700,color:'var(--text-primary)',borderBottom:'1px solid var(--border-default)'}}>Feature</div>
+        {products.map(p=>(
+          <div key={p.id} style={{padding:'16px 12px',fontFamily:'var(--font-body)',fontSize:'var(--text-sm)',fontWeight:700,textAlign:'center',
+            color:p.featured?'var(--text-gold)':'var(--text-primary)',borderBottom:'1px solid var(--border-default)',
+            background:p.featured?'var(--accent-soft-bg)':'transparent'}}>{p.shortName}</div>
         ))}
         {feats.map((f,ri)=>(
           <React.Fragment key={f[0]}>
             <div style={{padding:'14px 18px',fontSize:'var(--text-sm)',color:'var(--text-secondary)',borderBottom:ri<feats.length-1?'1px solid var(--border-subtle)':'none'}}>{f[0]}</div>
-            {[2,3].map(ci=>(
-              <div key={ci} style={{padding:'14px 18px',display:'flex',justifyContent:'center',alignItems:'center',borderBottom:ri<feats.length-1?'1px solid var(--border-subtle)':'none',background:ci===3?'var(--accent-soft-bg)':'transparent'}}>{cell(f[ci])}</div>
+            {f.slice(1).map((v,ci)=>(
+              <div key={ci} style={{padding:'14px 12px',display:'flex',justifyContent:'center',alignItems:'center',borderBottom:ri<feats.length-1?'1px solid var(--border-subtle)':'none',background:products[ci]&&products[ci].featured?'var(--accent-soft-bg)':'transparent'}}>{cell(v)}</div>
             ))}
           </React.Fragment>
         ))}
@@ -112,8 +117,8 @@ function ComparisonTable() {
 
 function PricingPage() {
   return <React.Fragment>
-    <PageHero kicker="Membership" title="Choose your edge"
-      lead="Start free, upgrade when you’re ready. Month-to-month with no lock-in, we’d rather earn your membership every month." />
+    <PageHero kicker="Membership" title="Choose your trading path"
+      lead="Free education, a one-time course, or monthly market guidance and mentorship, billing is always shown up front so you never have to guess." />
     <Reveal>
       <Pricing />
       <ComparisonTable />
@@ -299,8 +304,8 @@ function ArticleModal({ article, onClose }) {
           <p style={{fontSize:'var(--text-lg)',lineHeight:1.6,color:'var(--text-primary)',fontWeight:500,margin:'16px 0 8px'}}>{article.lead}</p>
           {article.body.map(block)}
           <div style={{marginTop:'34px',paddingTop:'24px',borderTop:'1px solid var(--border-subtle)',display:'flex',flexWrap:'wrap',gap:'12px',alignItems:'center',justifyContent:'space-between'}}>
-            <span style={{fontSize:'var(--text-sm)',color:'var(--text-tertiary)'}}>Want signals with this discipline built in?</span>
-            <KitButton as="a" href="/pricing" variant="primary" iconRight={<Icon name="arrow-up-right" size={16}/>}>Join VIP Signals</KitButton>
+            <span style={{fontSize:'var(--text-sm)',color:'var(--text-tertiary)'}}>Want guidance with this discipline built in?</span>
+            <KitButton as="a" href="/pricing" variant="primary" iconRight={<Icon name="arrow-up-right" size={16}/>}>View Pricing</KitButton>
           </div>
         </div>
       </article>
@@ -374,22 +379,52 @@ function BlogPage() {
       lead="Education-first articles on risk, psychology, and market structure, written to sharpen your edge, not sell you a dream." />
     <Reveal>
       <BlogIndex />
-      <CTASection />
     </Reveal>
   </React.Fragment>;
 }
 
 /* ============================ CONTACT ============================ */
-/* Premium custom dropdown, keyboard + click-outside aware. */
+/* Premium custom dropdown, keyboard + click-outside aware. The option list
+   renders through a portal into document.body (positioned via the button's
+   own getBoundingClientRect) instead of as a normal absolutely-positioned
+   child: several callers (the Tools modals) sit inside a card with
+   `overflow:hidden` for its rounded corners/glow, which would otherwise clip
+   a long list — e.g. the 33-entry pair/instrument list only showed its first
+   ~6 options before being cut off at the card edge. Portaling escapes that
+   clip entirely. Long lists also get a scrollable max-height instead of
+   growing without bound. */
 function FancySelect({ value, onChange, options, icon='target' }) {
   const [open,setOpen]=React.useState(false);
   const [active,setActive]=React.useState(Math.max(0,options.indexOf(value)));
+  const [coords,setCoords]=React.useState(null);
   const ref=React.useRef(null);
+  const btnRef=React.useRef(null);
+  const listRef=React.useRef(null);
+  const reposition=()=>{
+    if(!btnRef.current) return;
+    const r=btnRef.current.getBoundingClientRect();
+    const estListHeight=Math.min(options.length*41+12,300);
+    const spaceBelow=window.innerHeight-r.bottom;
+    const openUp = spaceBelow<estListHeight && r.top>spaceBelow;
+    setCoords({ left:r.left, width:r.width, top: openUp ? r.top-8 : r.bottom+8, openUp });
+  };
   React.useEffect(()=>{
-    const onDoc=(e)=>{ if(ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    if(!open) return;
+    reposition();
+    const onDoc=(e)=>{ if(ref.current && !ref.current.contains(e.target) && !(listRef.current && listRef.current.contains(e.target))) setOpen(false); };
+    /* Capture-phase so scrolling any ancestor (the modal card itself scrolls)
+       closes the list — but scrolling the list's own options must NOT, or the
+       long instrument list could never be scrolled through. */
+    const onScroll=(e)=>{ if(listRef.current && listRef.current.contains(e.target)) return; setOpen(false); };
     document.addEventListener('mousedown',onDoc);
-    return ()=>document.removeEventListener('mousedown',onDoc);
-  },[]);
+    window.addEventListener('scroll',onScroll,true);
+    window.addEventListener('resize',onScroll);
+    return ()=>{
+      document.removeEventListener('mousedown',onDoc);
+      window.removeEventListener('scroll',onScroll,true);
+      window.removeEventListener('resize',onScroll);
+    };
+  },[open]);
   const choose=(o)=>{ onChange(o); setOpen(false); };
   const onKey=(e)=>{
     if(e.key==='ArrowDown'){e.preventDefault(); setOpen(true); setActive(a=>Math.min(options.length-1,a+1));}
@@ -397,9 +432,30 @@ function FancySelect({ value, onChange, options, icon='target' }) {
     else if(e.key==='Enter'||e.key===' '){e.preventDefault(); if(open) choose(options[active]); else setOpen(true);}
     else if(e.key==='Escape'){setOpen(false);}
   };
+  const list = open && coords && ReactDOM.createPortal(
+    <ul ref={listRef} role="listbox" className="fwg-dropdown-menu"
+      style={{position:'fixed',left:coords.left,width:coords.width,
+        top: coords.openUp?undefined:coords.top, bottom: coords.openUp?(window.innerHeight-coords.top):undefined,
+        zIndex:400,listStyle:'none',margin:0,padding:'6px',maxHeight:'300px',overflowY:'auto',
+        background:'var(--surface-glass)',backdropFilter:'blur(var(--blur-md))',WebkitBackdropFilter:'blur(var(--blur-md))',
+        border:'1px solid var(--border-strong)',borderRadius:'var(--radius-md)',boxShadow:'var(--shadow-lg)'}}>
+      {options.map((o,i)=>{
+        const sel=o===value, hot=i===active;
+        return <li key={o} role="option" aria-selected={sel}
+          onMouseEnter={()=>setActive(i)} onClick={()=>choose(o)}
+          style={{display:'flex',alignItems:'center',gap:'10px',padding:'11px 12px',borderRadius:'var(--radius-sm)',cursor:'pointer',
+            fontSize:'var(--text-sm)',fontWeight:sel?700:500,color:sel?'var(--text-gold)':'var(--text-secondary)',
+            background:hot?'var(--surface-hover)':'transparent',transition:'background var(--dur-fast) var(--ease-out)'}}>
+          <span style={{width:'16px',display:'inline-flex',justifyContent:'center',color:'var(--text-gold)'}}>{sel && <Icon name="check" size={15}/>}</span>
+          <span>{o}</span>
+        </li>;
+      })}
+    </ul>,
+    document.body
+  );
   return (
     <div ref={ref} style={{position:'relative'}}>
-      <button type="button" role="combobox" aria-expanded={open} aria-haspopup="listbox" onClick={()=>setOpen(o=>!o)} onKeyDown={onKey}
+      <button ref={btnRef} type="button" role="combobox" aria-expanded={open} aria-haspopup="listbox" onClick={()=>setOpen(o=>!o)} onKeyDown={onKey}
         style={{width:'100%',display:'flex',alignItems:'center',gap:'12px',cursor:'pointer',textAlign:'left',
           background:'var(--surface-inset)',border:`1px solid ${open?'var(--border-gold)':'var(--border-default)'}`,borderRadius:'var(--radius-md)',
           padding:'13px 14px',fontFamily:'var(--font-body)',fontSize:'var(--text-sm)',color:'var(--text-primary)',
@@ -410,24 +466,7 @@ function FancySelect({ value, onChange, options, icon='target' }) {
           <Icon name="chevron-down" size={18}/>
         </span>
       </button>
-      {open && (
-        <ul role="listbox" className="fwg-dropdown-menu"
-          style={{position:'absolute',top:'calc(100% + 8px)',left:0,right:0,zIndex:20,listStyle:'none',margin:0,padding:'6px',
-            background:'var(--surface-glass)',backdropFilter:'blur(var(--blur-md))',WebkitBackdropFilter:'blur(var(--blur-md))',
-            border:'1px solid var(--border-strong)',borderRadius:'var(--radius-md)',boxShadow:'var(--shadow-lg)'}}>
-          {options.map((o,i)=>{
-            const sel=o===value, hot=i===active;
-            return <li key={o} role="option" aria-selected={sel}
-              onMouseEnter={()=>setActive(i)} onClick={()=>choose(o)}
-              style={{display:'flex',alignItems:'center',gap:'10px',padding:'11px 12px',borderRadius:'var(--radius-sm)',cursor:'pointer',
-                fontSize:'var(--text-sm)',fontWeight:sel?700:500,color:sel?'var(--text-gold)':'var(--text-secondary)',
-                background:hot?'var(--surface-hover)':'transparent',transition:'background var(--dur-fast) var(--ease-out)'}}>
-              <span style={{width:'16px',display:'inline-flex',justifyContent:'center',color:'var(--text-gold)'}}>{sel && <Icon name="check" size={15}/>}</span>
-              <span>{o}</span>
-            </li>;
-          })}
-        </ul>
-      )}
+      {list}
     </div>
   );
 }
@@ -508,7 +547,7 @@ function PhoneInput({ value, onChange, country, onCountry, required }) {
 
 function ContactForm() {
   const [sent,setSent]=React.useState(false);
-  const [f,setF]=React.useState({name:'',email:'',phone:'',topic:'VIP Signals',message:''});
+  const [f,setF]=React.useState({name:'',email:'',phone:'',topic:'Premium Signals',message:''});
   const [country,setCountry]=React.useState(null);
   const fld=(k)=>({value:f[k],onChange:(e)=>setF(s=>({...s,[k]:e.target.value}))});
   const inputStyle={width:'100%',background:'var(--surface-inset)',border:'1px solid var(--border-default)',borderRadius:'var(--radius-md)',padding:'13px 14px',
@@ -554,7 +593,7 @@ function ContactForm() {
           </div>
           <div><label style={lab}>I’m interested in</label>
             <FancySelect value={f.topic} onChange={(v)=>setF(s=>({...s,topic:v}))}
-              options={['VIP Signals','Mentorship','Market Analysis','General enquiry']} />
+              options={['Free Community','Forex Masterclass','Premium Signals','1:1 Mentorship','Forex Trader Pro Bundle','General enquiry']} />
           </div>
         </div>
         <div><label style={lab}>Message</label><textarea required rows={5} placeholder="Tell us a little about your trading and what you’re looking for…" style={{...inputStyle,resize:'vertical'}} {...fld('message')}/></div>
@@ -568,28 +607,32 @@ function ContactPage() {
   const channels=[
     ['mail','Email','mirzaghasif111@gmail.com','For general enquiries & partnerships','mailto:mirzaghasif111@gmail.com'],
     ['instagram','Instagram','@forexwithghasif','Fastest way to reach the team',(window.FWG_SOCIAL||{}).instagram],
-    ['message-circle','WhatsApp','Message us directly','Members get priority support',(window.FWG_SOCIAL||{}).whatsapp],
+    ['message-circle','WhatsApp','Message us directly','Members get priority support',(window.FWG_SOCIAL||{}).whatsapp,'Chat on WhatsApp'],
   ];
   const socials=[['instagram','Instagram'],['facebook','Facebook'],['whatsapp','WhatsApp']];
   return <React.Fragment>
     <PageHero kicker="Contact" title="Let’s talk trading"
-      lead="Questions about VIP Signals or mentorship? Reach out, we usually reply within one business day." />
+      lead="Questions about the Masterclass, Signals, Mentorship, or the Pro Bundle? Reach out, we usually reply within one business day." />
     <Reveal>
       <Section data-reveal="left"><Container>
         <div style={{display:'grid',gridTemplateColumns:'1.1fr 0.9fr',gap:'var(--space-8)',alignItems:'start'}} className="fwg-hero-grid">
           <ContactForm />
           <div style={{display:'flex',flexDirection:'column',gap:'14px'}}>
-            {channels.map(([ic,t,v,d,href])=>(
-              <a key={t} href={href} target={href&&href.startsWith('http')?'_blank':undefined} rel={href&&href.startsWith('http')?'noopener noreferrer':undefined} style={{display:'block',textDecoration:'none'}}>
+            {channels.map(([ic,t,v,d,href,cta])=>(
+              <a key={t} href={href} target={href&&href.startsWith('http')?'_blank':undefined} rel={href&&href.startsWith('http')?'noopener noreferrer':undefined}
+                aria-label={cta||t} className={cta?'fwg-wa-card':undefined} style={{display:'block',textDecoration:'none'}}>
               <KitCard interactive padding="20px">
                 <div style={{display:'flex',gap:'16px',alignItems:'center'}}>
                   <div style={{width:'46px',height:'46px',flexShrink:0,borderRadius:'var(--radius-md)',background:'var(--accent-soft-bg)',border:'1px solid var(--border-gold)',display:'inline-flex',alignItems:'center',justifyContent:'center'}}>
                     <Icon name={ic} size={20} color="var(--text-gold)"/>
                   </div>
-                  <div>
+                  <div style={{flex:1,minWidth:0}}>
                     <div style={{fontSize:'var(--text-2xs)',textTransform:'uppercase',letterSpacing:'0.12em',color:'var(--text-muted)',fontWeight:700,marginBottom:'3px'}}>{t}</div>
                     <div style={{fontFamily:'var(--font-body)',fontSize:'var(--text-md)',fontWeight:600,color:'var(--text-primary)'}}>{v}</div>
                     <div style={{fontSize:'var(--text-xs)',color:'var(--text-tertiary)',marginTop:'2px'}}>{d}</div>
+                    {cta && <div style={{display:'flex',alignItems:'center',gap:'6px',fontSize:'var(--text-xs)',fontWeight:700,color:'var(--bullish)',marginTop:'10px'}}>
+                      {cta}<span className="fwg-wa-card-arrow"><Icon name="arrow-right" size={14} color="var(--bullish)"/></span>
+                    </div>}
                   </div>
                 </div>
               </KitCard>

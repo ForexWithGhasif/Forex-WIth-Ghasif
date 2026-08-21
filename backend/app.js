@@ -5,6 +5,7 @@ const healthRoutes = require('./routes/healthRoutes');
 const contactRoutes = require('./routes/contactRoutes');
 const newsletterRoutes = require('./routes/newsletterRoutes');
 const marketDataRoutes = require('./routes/marketDataRoutes');
+const economicCalendarRoutes = require('./routes/economicCalendarRoutes');
 
 const app = express();
 
@@ -15,6 +16,7 @@ app.use('/api/health', healthRoutes);
 app.use('/api/contact', contactRoutes);
 app.use('/api/newsletter', newsletterRoutes);
 app.use('/api/market-prices', marketDataRoutes);
+app.use('/api/economic-calendar', economicCalendarRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ success: false, message: 'Not found' });

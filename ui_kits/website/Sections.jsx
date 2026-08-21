@@ -50,7 +50,7 @@ function About() {
     <div style={{display:'grid',gridTemplateColumns:'0.9fr 1.1fr',gap:'var(--space-8)',alignItems:'center'}} className="fwg-hero-grid">
       <div>
         <KitKicker>About Forex With Ghasif</KitKicker>
-        <h2 style={{fontFamily:'var(--font-display)',fontWeight:700,fontSize:'var(--text-2xl)',lineHeight:1.12,letterSpacing:'var(--ls-tight)',margin:'14px 0 16px',maxWidth:'16ch'}}>
+        <h2 style={{fontFamily:'var(--font-display)',fontWeight:700,fontSize:'var(--text-2xl)',lineHeight:1.12,letterSpacing:'var(--ls-tight)',margin:'14px 0 16px',maxWidth:'18ch'}}>
           A mentor, not a hype machine.
         </h2>
         <p style={{fontSize:'var(--text-md)',lineHeight:1.7,color:'var(--text-secondary)',margin:'0 0 16px'}}>

@@ -3,6 +3,21 @@
 
 html { scroll-behavior: smooth; background: var(--bg-base); }
 body { background: transparent; overflow-x: hidden; }
+
+/* This is a real multi-page site (every nav link is a full document
+   navigation, no client-side router) so "page jumping" is normally an
+   instant hard cut. The View Transitions API smooths that cross-document
+   swap into a soft cross-fade with zero JS — supporting browsers (Chrome/Edge
+   111+) animate it automatically; others just keep the previous instant
+   navigation, no fallback code needed. */
+@view-transition { navigation: auto; }
+::view-transition-old(root), ::view-transition-new(root) {
+  animation-duration: var(--dur-slow);
+  animation-timing-function: var(--ease-out);
+}
+@media (prefers-reduced-motion: reduce) {
+  @view-transition { navigation: none; }
+}
 #fwg-dot-bg { transition: opacity var(--dur-theme) var(--ease-smooth); }
 
 @keyframes fwgmarquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
@@ -32,6 +47,28 @@ body { background: transparent; overflow-x: hidden; }
 @keyframes fwgPopIn { from { opacity: 0; transform: translateY(-6px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
 .fwg-dropdown-menu { animation: fwgPopIn 160ms var(--ease-out) both; }
 
+/* Floating action buttons (currently just WhatsApp): bottom offset accounts
+   for the iOS home-indicator safe area so it never sits flush against it. */
+.fwg-wa-fab { bottom: max(24px, env(safe-area-inset-bottom) + 12px); }
+@media (max-width: 640px) {
+  .fwg-wa-fab { right: 16px !important; bottom: max(16px, env(safe-area-inset-bottom) + 8px) !important; }
+}
+.fwg-wa-fab:focus-visible { outline: 2px solid var(--border-gold); outline-offset: 3px; }
+
+.fwg-fab-tooltip {
+  position: absolute; right: calc(100% + 12px); top: 50%;
+  transform: translateY(-50%) translateX(4px);
+  background: var(--surface-glass); border: 1px solid var(--border-strong); color: var(--text-primary);
+  font-size: var(--text-2xs); font-weight: 600; padding: 6px 10px; border-radius: var(--radius-sm);
+  white-space: nowrap; opacity: 0; pointer-events: none; box-shadow: var(--shadow-md);
+  transition: opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
+}
+.fwg-wa-fab:hover .fwg-fab-tooltip, .fwg-wa-fab:focus-visible .fwg-fab-tooltip { opacity: 1; transform: translateY(-50%) translateX(0); }
+
+/* Contact page WhatsApp card: small arrow nudges on hover of the whole card. */
+.fwg-wa-card-arrow { display: inline-flex; transition: transform var(--dur-fast) var(--ease-out); }
+.fwg-wa-card:hover .fwg-wa-card-arrow { transform: translateX(4px); }
+
 .fwg-menu-btn { display: none; }
 
 @media (max-width: 1040px) {
@@ -41,7 +78,7 @@ body { background: transparent; overflow-x: hidden; }
 
 @media (max-width: 980px) {
   .fwg-hero-grid, .fwg-grid-2, .fwg-foot-grid, .fwg-service-grid { grid-template-columns: 1fr !important; }
-  .fwg-grid-3 { grid-template-columns: 1fr 1fr !important; }
+  .fwg-grid-3, .fwg-grid-4 { grid-template-columns: 1fr 1fr !important; }
   .fwg-table { font-size: var(--text-xs) !important; }
   .fwg-feat-fade { display: none !important; }
   /* Hero content column: once the hero grid stacks to one column, center
@@ -59,7 +96,7 @@ body { background: transparent; overflow-x: hidden; }
 }
 
 @media (max-width: 620px) {
-  .fwg-grid-3 { grid-template-columns: 1fr !important; }
+  .fwg-grid-3, .fwg-grid-4 { grid-template-columns: 1fr !important; }
   .fwg-hide-mobile { display: none !important; }
   .fwg-foot-grid { gap: var(--space-6) !important; }
   /* Footer's bottom legal row: on desktop it's copyright-left /
@@ -82,8 +119,31 @@ body { background: transparent; overflow-x: hidden; }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   .fwg-reveal-up, .fwg-reveal-down, .fwg-reveal-left, .fwg-reveal-right,
-  .fwg-modal-overlay, .fwg-modal-card, .fwg-dropdown-menu { animation: none; }
+  .fwg-modal-overlay, .fwg-modal-card, .fwg-dropdown-menu, .fwg-app-in { animation: none; }
   [style*="fwgmarquee"] { animation: none !important; }
+  #fwg-preloader img { animation: none; }
+  .fwg-wa-fab, .fwg-fab-tooltip { transition: none; }
   /* The dot background itself fully disables its own animation loop for
      reduced motion (see bgfx.js) — nothing extra needed here. */
 }
+
+/* This project has no build step: every page transpiles its JSX live in the
+   browser on each navigation (see the <script type="text/babel"> tags), which
+   can genuinely take a few seconds. #root is otherwise empty HTML until that
+   finishes, so without this, navigating between pages is a blank flash
+   followed by content popping in with no transition. Two pieces fix that:
+   1) a static preloader (plain HTML, no JS) shows the instant the page
+      arrives, so there's never a truly blank screen.
+   2) once React replaces it, the mounted app fades+rises in via .fwg-app-in
+      (added by Layout itself) instead of appearing abruptly. */
+@keyframes fwgPreloaderPulse { 0%, 100% { opacity: 0.35; transform: scale(0.94); } 50% { opacity: 1; transform: scale(1); } }
+#fwg-preloader { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: var(--bg-base); z-index: 9999; }
+#fwg-preloader img { height: 52px; width: auto; animation: fwgPreloaderPulse 1.3s var(--ease-smooth) infinite; }
+
+/* fill-mode is "backwards" (not "both"): once the animation ends its
+   transform must revert to the stylesheet's real value (none) rather than
+   staying pinned at translateY(0) — a lingering non-none transform creates a
+   new containing block for any position:fixed descendant (the offer popup,
+   any modal), which breaks their fixed positioning relative to the viewport. */
+@keyframes fwgAppIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+.fwg-app-in { animation: fwgAppIn var(--dur-slow) var(--ease-out) backwards; }

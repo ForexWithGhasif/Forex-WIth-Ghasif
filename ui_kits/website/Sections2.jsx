@@ -61,86 +61,164 @@ function Testimonials() {
   </Container></Section>;
 }
 
-function Pricing() {
-  const plans=[
-    {name:'VIP Signals',price:'Free',period:'',blurb:'Daily signals with full trade plans.',features:['3-5 signals daily','Entry, stop & target on every call','Private Instagram & app alerts','Weekly live market review','Gold, indices & major pairs'],cta:'Join VIP Community',href:(window.FWG_SOCIAL||{}).whatsappCommunity,featured:true},
-    {name:'Mentorship',price:'$20',blurb:'1:1 coaching to consistency.',features:['Everything in VIP','2× monthly 1:1 calls','Personal trade-plan reviews','Direct access to Ghasif','Custom risk framework'],highlights:['Forex Trading Mentorship','Complete Masterclass Course','Premium Trading Signals'],cta:'Enroll Now',href:(window.FWG_SOCIAL||{}).whatsappMentorship,variant:'outlineGold'},
-  ];
-  return <Section id="pricing"><Container>
-    <Head align="center" kicker="Plans" title="Simple, honest pricing"
-      lead="Start free, upgrade when you’re ready. Cancel anytime, we’d rather earn your membership every month." />
-    <div style={{display:'grid',gridTemplateColumns:'repeat(2, minmax(0, 380px))',gap:'18px',alignItems:'stretch',marginTop:'12px',justifyContent:'center'}} className="fwg-grid-2">
-      {plans.map(p=>(
-        <div key={p.name} style={{position:'relative',display:'flex',flexDirection:'column',gap:'20px',padding:'var(--space-6)',borderRadius:'var(--radius-xl)',
-          background:p.featured?'linear-gradient(180deg, rgba(214,175,67,0.08), var(--surface-card))':'var(--surface-card)',
-          border:`1px solid ${p.featured?'var(--border-gold)':'var(--border-default)'}`,
-          boxShadow:p.featured?'var(--glow-gold-sm), var(--shadow-card)':'var(--shadow-card)'}}>
-          {p.featured&&<span style={{position:'absolute',top:'-12px',left:'50%',transform:'translateX(-50%)'}}><KitBadge tone="solid">Most popular</KitBadge></span>}
-          <div>
-            <div style={{fontSize:'var(--text-xs)',fontWeight:700,letterSpacing:'var(--ls-wider)',textTransform:'uppercase',color:'var(--text-gold)',marginBottom:'6px'}}>{p.name}</div>
-            <div style={{fontSize:'var(--text-sm)',color:'var(--text-tertiary)',lineHeight:1.5}}>{p.blurb}</div>
-          </div>
-          <div style={{display:'flex',alignItems:'baseline',gap:'4px'}}>
-            <span style={{fontFamily:'var(--font-display)',fontWeight:800,fontSize:'var(--text-3xl)',letterSpacing:'-0.02em'}}>{p.price}</span>
-            {p.period!==''&&<span style={{fontFamily:'var(--font-mono)',fontSize:'var(--text-sm)',color:'var(--text-tertiary)'}}>{p.period||'/mo'}</span>}
-          </div>
-          <div style={{height:'1px',background:'var(--border-subtle)'}}/>
-          <ul style={{listStyle:'none',margin:0,padding:0,display:'flex',flexDirection:'column',gap:'12px',flex:p.highlights?'0 0 auto':1}}>
-            {p.features.map(f=>(<li key={f} style={{display:'flex',gap:'10px',alignItems:'flex-start',fontSize:'var(--text-sm)',color:'var(--text-secondary)'}}>
-              <span style={{flexShrink:0,width:'18px',height:'18px',borderRadius:'50%',background:'var(--accent-soft-bg)',color:'var(--text-gold)',display:'inline-flex',alignItems:'center',justifyContent:'center',fontSize:'11px',fontWeight:700,marginTop:'1px'}}>✓</span>
-              <span style={{lineHeight:1.5}}>{f}</span></li>))}
-          </ul>
-          {p.highlights&&(
-            <div style={{flex:1,marginTop:'2px',padding:'16px',borderRadius:'var(--radius-lg)',background:'linear-gradient(180deg, rgba(214,175,67,0.10), rgba(214,175,67,0.02))',border:'1px solid var(--border-gold)',boxShadow:'var(--inset-gold-hi)'}}>
-              <div style={{display:'flex',alignItems:'center',gap:'7px',marginBottom:'12px'}}>
-                <Icon name="gem" size={14} color="var(--text-gold)"/>
-                <span style={{fontSize:'var(--text-2xs)',fontWeight:700,letterSpacing:'var(--ls-wider)',textTransform:'uppercase',color:'var(--text-gold)'}}>Premium inclusions</span>
-              </div>
-              <ul style={{listStyle:'none',margin:0,padding:0,display:'flex',flexDirection:'column',gap:'11px'}}>
-                {p.highlights.map(h=>(<li key={h} style={{display:'flex',gap:'10px',alignItems:'center',fontSize:'var(--text-sm)',fontWeight:600,color:'var(--text-primary)'}}>
-                  <Icon name="check" size={15} color="var(--text-gold)" style={{flexShrink:0}}/>
-                  <span style={{lineHeight:1.4}}>{h}</span></li>))}
-              </ul>
-            </div>
-          )}
-          <KitButton as="a" href={p.href||'/contact'} target={p.href&&p.href.startsWith('http')?'_blank':undefined} rel={p.href&&p.href.startsWith('http')?'noopener noreferrer':undefined} variant={p.featured?'primary':(p.variant||'secondary')} fullWidth>{p.cta}</KitButton>
-        </div>
-      ))}
+/* Price + billing period, styled so one-time and recurring never look
+   identical (required: never make a visitor guess whether a price repeats). */
+function PriceTag({ price, billing }) {
+  return <div style={{display:'flex',flexDirection:'column',gap:'6px'}}>
+    <div style={{display:'flex',alignItems:'baseline',gap:'8px',flexWrap:'wrap'}}>
+      <span style={{fontFamily:'var(--font-display)',fontWeight:800,fontSize:'var(--text-3xl)',letterSpacing:'-0.02em'}}>{price}</span>
+      {billing==='monthly' && <span style={{fontFamily:'var(--font-mono)',fontSize:'var(--text-sm)',color:'var(--text-tertiary)'}}>/month</span>}
+      {billing==='one-time' && <KitBadge tone="gold" mono>One-time</KitBadge>}
+      {billing==='free' && <KitBadge tone="neutral" mono>Free</KitBadge>}
     </div>
+    <span style={{fontSize:'var(--text-xs)',color:'var(--text-muted)'}}>
+      {billing==='monthly' ? 'Recurring monthly · cancel anytime' : billing==='one-time' ? 'One-time payment, keep access' : 'No cost, ever'}
+    </span>
+  </div>;
+}
+
+/* Standard tier card, shared by the 4 non-bundle products. A badge (only
+   Masterclass has one) overlaps the card's top edge as a small ribbon instead
+   of sitting inline next to the name — inline wrapped onto its own line at
+   most widths, which is the "stacked, looks bad" bug being fixed here. The
+   tagline block still gets a fixed minHeight so every card's price row starts
+   at the same y-position regardless of how many lines the tagline wraps to. */
+function PlanCard({ p }) {
+  return <div style={{position:'relative',display:'flex',flexDirection:'column',gap:'18px',padding:'var(--space-6)',borderRadius:'var(--radius-xl)',
+    background:'var(--surface-card)',border:'1px solid var(--border-default)',boxShadow:'var(--shadow-card)',height:'100%'}}>
+    {p.badge && <span style={{position:'absolute',top:'-12px',left:'50%',transform:'translateX(-50%)'}}><KitBadge tone="gold">{p.badge}</KitBadge></span>}
+    <div style={{minHeight:'110px'}}>
+      <div style={{marginBottom:'8px'}}>
+        <span style={{fontSize:'var(--text-xs)',fontWeight:700,letterSpacing:'var(--ls-wider)',textTransform:'uppercase',color:'var(--text-gold)'}}>{p.name}</span>
+      </div>
+      <div style={{fontSize:'var(--text-sm)',color:'var(--text-tertiary)',lineHeight:1.55}}>{p.tagline}</div>
+    </div>
+    <PriceTag price={p.price} billing={p.billing} />
+    <div style={{height:'1px',background:'var(--border-subtle)'}}/>
+    <ul style={{listStyle:'none',margin:0,padding:0,display:'flex',flexDirection:'column',gap:'11px',flex:1}}>
+      {p.features.map(f=>(<li key={f} style={{display:'flex',gap:'10px',alignItems:'flex-start',fontSize:'var(--text-sm)',color:'var(--text-secondary)'}}>
+        <Icon name="check" size={15} color="var(--text-gold)" style={{flexShrink:0,marginTop:'2px'}}/>
+        <span style={{lineHeight:1.5}}>{f}</span></li>))}
+    </ul>
+    <KitButton as="a" href={p.href||'/contact'} target={p.href&&p.href.startsWith('http')?'_blank':undefined} rel={p.href&&p.href.startsWith('http')?'noopener noreferrer':undefined} variant="secondary" fullWidth>{p.cta}</KitButton>
+  </div>;
+}
+
+/* Flagship: the Pro Bundle, broken out full-width with its own value stack.
+   No "save $X/month" claim — Masterclass is one-time and Signals/Mentorship
+   are monthly, so that math would be misleading; instead the billing model
+   is explained in plain language. */
+function BundleCard({ p, all }) {
+  const parts = all.filter(x=>['masterclass','signals','mentorship'].includes(x.id));
+  const savePct = p.originalPrice ? Math.round((1 - parseFloat(p.price.replace('$','')) / parseFloat(p.originalPrice.replace('$',''))) * 100) : null;
+  return <div id="pro-bundle" style={{position:'relative',overflow:'hidden',borderRadius:'var(--radius-2xl)',scrollMarginTop:'100px',
+    background:'linear-gradient(160deg, rgba(214,175,67,0.10), var(--surface-card-solid))',border:'1px solid var(--border-gold)',
+    boxShadow:'var(--glow-gold-md), var(--shadow-xl)',padding:'clamp(28px,4vw,48px)'}}>
+    <div style={{position:'absolute',inset:0,background:'var(--glow-gold)',pointerEvents:'none'}}/>
+    <div style={{position:'relative',display:'grid',gridTemplateColumns:'1.05fr 0.95fr',gap:'var(--space-8)',alignItems:'start'}} className="fwg-hero-grid">
+      <div style={{display:'flex',flexDirection:'column',gap:'16px'}}>
+        <div>
+          <div style={{display:'flex',alignItems:'center',gap:'8px',flexWrap:'wrap',marginBottom:'12px'}}>
+            <KitBadge tone="solid">{p.badge}</KitBadge>
+            {p.offerBadge && <KitBadge tone="bull" dot>{p.offerBadge}</KitBadge>}
+          </div>
+          <h3 style={{fontFamily:'var(--font-display)',fontWeight:800,fontSize:'var(--text-2xl)',letterSpacing:'-0.02em',margin:'0 0 10px'}}>{p.name}</h3>
+          <p style={{fontSize:'var(--text-md)',lineHeight:1.65,color:'var(--text-secondary)',margin:0,maxWidth:'46ch'}}>{p.tagline}</p>
+        </div>
+        {p.originalPrice && (
+          <div style={{display:'flex',alignItems:'center',gap:'10px'}}>
+            <span style={{fontFamily:'var(--font-mono)',fontSize:'var(--text-lg)',color:'var(--text-muted)',textDecoration:'line-through'}}>{p.originalPrice}/mo</span>
+            {savePct!=null && <KitBadge tone="bull" mono>Save {savePct}%</KitBadge>}
+          </div>
+        )}
+        <PriceTag price={p.price} billing={p.billing} />
+        <div style={{display:'flex',flexDirection:'column',gap:'10px',marginTop:'4px'}}>
+          <KitButton as="a" href={p.href} target="_blank" rel="noopener noreferrer" variant="primary" size="lg" iconRight={<Icon name="arrow-up-right" size={18}/>}>{p.cta}</KitButton>
+          <span style={{fontSize:'var(--text-xs)',color:'var(--text-tertiary)',fontStyle:'italic'}}>{p.secondaryText}</span>
+        </div>
+      </div>
+
+      <div style={{display:'flex',flexDirection:'column',gap:'16px'}}>
+        <div style={{padding:'18px',borderRadius:'var(--radius-lg)',background:'var(--surface-inset)',border:'1px solid var(--border-default)'}}>
+          <div style={{fontSize:'var(--text-2xs)',fontWeight:700,letterSpacing:'0.1em',textTransform:'uppercase',color:'var(--text-muted)',marginBottom:'14px'}}>What's combined into {p.price}/month</div>
+          <div style={{display:'flex',flexDirection:'column',gap:'10px'}}>
+            {parts.map(x=>(
+              <div key={x.id} style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:'12px'}}>
+                <span style={{fontSize:'var(--text-sm)',color:'var(--text-primary)',fontWeight:600}}>{x.name}</span>
+                <span style={{fontFamily:'var(--font-mono)',fontSize:'var(--text-xs)',color:'var(--text-tertiary)',whiteSpace:'nowrap'}}>
+                  {x.billing==='one-time' ? `${x.price} one-time value` : `${x.price}/mo value`}
+                </span>
+              </div>
+            ))}
+          </div>
+          <p style={{fontSize:'var(--text-2xs)',lineHeight:1.6,color:'var(--text-muted)',margin:'14px 0 0',paddingTop:'12px',borderTop:'1px solid var(--border-subtle)'}}>
+            The Masterclass is normally a one-time purchase; Signals and Mentorship are each billed monthly on their own. As part of the Pro Bundle, all three run under one {p.price}/month membership, cancel anytime.
+          </p>
+        </div>
+        <ul style={{listStyle:'none',margin:0,padding:0,display:'grid',gridTemplateColumns:'1fr 1fr',gap:'10px 14px'}} className="fwg-grid-2">
+          {p.features.map(f=>(<li key={f} style={{display:'flex',gap:'8px',alignItems:'flex-start',fontSize:'var(--text-xs)',color:'var(--text-secondary)'}}>
+            <Icon name="check" size={13} color="var(--text-gold)" style={{flexShrink:0,marginTop:'2px'}}/>
+            <span style={{lineHeight:1.45}}>{f}</span></li>))}
+        </ul>
+      </div>
+    </div>
+  </div>;
+}
+
+function Pricing() {
+  const products = window.FWG_PRODUCTS || [];
+  const tiers = products.filter(p=>!p.featured);
+  const bundle = products.find(p=>p.featured);
+  return <Section id="pricing"><Container>
+    <Head align="center" kicker="Membership" title="Choose your trading path"
+      lead="Learn the fundamentals, access market guidance, or get the complete trading experience. Billing is always shown up front, one-time or monthly." />
+    <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:'16px',alignItems:'stretch',marginTop:'12px',marginBottom:'20px'}} className="fwg-grid-4">
+      {tiers.map(p=><PlanCard key={p.id} p={p} />)}
+    </div>
+    {bundle && <BundleCard p={bundle} all={products} />}
     <p style={{textAlign:'center',fontSize:'var(--text-xs)',color:'var(--text-muted)',marginTop:'var(--space-6)',maxWidth:'60ch',marginInline:'auto',lineHeight:1.6}}>
-      Trading foreign exchange carries substantial risk and is not suitable for every investor. Past performance is not indicative of future results.
+      Trading foreign exchange carries substantial risk and is not suitable for every investor. Past performance is not indicative of future results. No product or service guarantees profit.
     </p>
   </Container></Section>;
 }
 
 function FAQ() {
   const qs=[
-    ['Do you guarantee profits?','No, and you should run from anyone who does. We provide education, signals, and a disciplined framework. Markets carry real risk; our job is to put the odds and the process on your side.'],
-    ['Do I need any experience to start?','Not at all. Our free VIP tier and Foundations material assume zero background. Many members join knowing nothing and build up step by step.'],
+['What’s the difference between the Masterclass, Signals, and Mentorship?','They’re separate products for separate needs. The Masterclass ($29, one-time) is a structured 12-module course that teaches you to trade. Premium Signals ($15/month) is ongoing market analysis and trade ideas. 1:1 Mentorship ($20/month) is personalised coaching and accountability. The Forex Trader Pro Bundle combines all three into one membership, now $39/month for a limited time (usually $64/month).'],
+    ['Do you guarantee profits?','No, and you should run from anyone who does. We provide education, market analysis, and a disciplined framework. Markets carry real risk; our job is to put the odds and the process on your side, not to promise an outcome.'],
+    ['Do I need any experience to start?','Not at all. The Free Community and the Masterclass both start from zero background. Many members join knowing nothing and build up step by step.'],
     ['How much money do I need to begin?','You can start learning with any amount, even on a demo account. For live trading we teach you to risk a small, fixed percentage per trade, so your capital decides position size, not the other way around.'],
-    ['How are the signals delivered?','In real time through our private WhatsApp Community, each signal with entry, stop-loss, take-profit, and the reasoning behind the trade.'],
+    ['How are Premium Signals delivered?','In real time through our private channel, each signal with an entry area, stop-loss level, and target levels, plus the reasoning behind the trade.'],
     ['Which broker or platform do I need?','Any reputable broker with major forex pairs and gold works. We give general guidance on choosing one, but you keep full control of your own funds and account.'],
-    ['How much time does this take each day?','Most members spend 30 to 60 minutes a day. Signals and analysis are delivered ready to act on, and the live sessions are recorded so you can catch up any time.'],
-    ['What markets do you cover?','Major and minor forex pairs, gold (XAU/USD), and select indices. We focus on liquid markets with clean, readable structure.'],
-    ['Is the mentorship really 1:1?','Yes. The Mentorship tier includes private calls and personalised trade-plan reviews directly with Ghasif and senior mentors.'],
-    ['Can I cancel anytime, and how do I join?','Memberships are month to month with no lock-in. To join, pick a plan on the Pricing page or message us on Instagram and we will get you set up.'],
+    ['How much time does this take each day?','Most members spend 30 to 60 minutes a day. Analysis is delivered ready to act on, and live sessions are recorded so you can catch up any time.'],
+    ['What markets do you cover?','Major forex pairs and gold (XAU/USD). We focus on liquid markets with clean, readable structure.'],
+    ['Is the mentorship really 1:1?','Yes. The Mentorship product includes private calls and personalised trade-plan reviews directly with a mentor, not a group session.'],
+    ['Does the Masterclass include Signals or Mentorship?','No. The standalone Masterclass is a self-contained course; it doesn’t automatically include Premium Signals or 1:1 Mentorship. Those, plus everything in the Masterclass, come bundled together in the Forex Trader Pro Bundle.'],
+    ['Can I cancel anytime, and how do I join?','Premium Signals, Mentorship, and the Pro Bundle are month to month with no lock-in; the Masterclass is a one-time purchase you keep. To join any product, pick it on the Pricing page or message us and we’ll get you set up.'],
   ];
   const [open,setOpen]=React.useState(-1);
-  return <Section id="faq"><Container style={{maxWidth:'var(--container-md)'}}>
-    <Head align="center" kicker="FAQ" title="Questions, answered honestly" />
-    <div style={{display:'flex',flexDirection:'column',gap:'12px'}}>
-      {qs.map(([q,a],i)=>{
-        const isOpen=open===i;
-        return <div key={i} style={{borderRadius:'var(--radius-lg)',background:'var(--surface-card)',border:`1px solid ${isOpen?'var(--border-gold)':'var(--border-default)'}`,overflow:'hidden',transition:'border-color var(--dur-base) var(--ease-out)'}}>
-          <button onClick={()=>setOpen(isOpen?-1:i)} style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',gap:'16px',padding:'18px 22px',background:'transparent',border:'none',cursor:'pointer',textAlign:'left',color:'var(--text-primary)',fontFamily:'var(--font-display)',fontSize:'var(--text-md)',fontWeight:600}}>
-            {q}
-            <span style={{flexShrink:0,transform:isOpen?'rotate(45deg)':'rotate(0)',transition:'transform var(--dur-base) var(--ease-out)',color:'var(--text-gold)'}}><Icon name="plus" size={20}/></span>
-          </button>
-          <div style={{maxHeight:isOpen?'400px':'0',overflow:'hidden',transition:'max-height var(--dur-slow) var(--ease-out)'}}>
-            <p style={{padding:'0 22px 20px',margin:0,fontSize:'var(--text-sm)',lineHeight:1.7,color:'var(--text-secondary)'}}>{a}</p>
-          </div>
-        </div>;
-      })}
+  return <Section id="faq"><Container>
+    <div style={{display:'grid',gridTemplateColumns:'0.8fr 1.2fr',gap:'var(--space-8)',alignItems:'start'}} className="fwg-hero-grid">
+      <div>
+        <KitKicker>FAQ</KitKicker>
+        <h2 style={{fontFamily:'var(--font-display)',fontWeight:700,fontSize:'var(--text-2xl)',lineHeight:1.12,letterSpacing:'var(--ls-tight)',margin:'14px 0 16px',maxWidth:'16ch'}}>Questions, answered honestly</h2>
+        <p style={{fontSize:'var(--text-md)',lineHeight:1.7,color:'var(--text-secondary)',margin:0,maxWidth:'40ch'}}>Can’t find what you’re looking for?</p>
+        <div style={{marginTop:'18px'}}><KitButton as="a" href="/contact" variant="outlineGold" iconRight={<Icon name="arrow-right" size={16}/>}>Get in touch</KitButton></div>
+      </div>
+      <div style={{display:'flex',flexDirection:'column',gap:'12px'}}>
+        {qs.map(([q,a],i)=>{
+          const isOpen=open===i;
+          return <div key={i} style={{borderRadius:'var(--radius-lg)',background:'var(--surface-card)',border:`1px solid ${isOpen?'var(--border-gold)':'var(--border-default)'}`,overflow:'hidden',transition:'border-color var(--dur-base) var(--ease-out)'}}>
+            <button onClick={()=>setOpen(isOpen?-1:i)} aria-expanded={isOpen} style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',gap:'16px',padding:'18px 22px',background:'transparent',border:'none',cursor:'pointer',textAlign:'left',color:'var(--text-primary)',fontFamily:'var(--font-display)',fontSize:'var(--text-md)',fontWeight:600}}>
+              {q}
+              <span style={{flexShrink:0,transform:isOpen?'rotate(45deg)':'rotate(0)',transition:'transform var(--dur-base) var(--ease-out)',color:'var(--text-gold)'}}><Icon name="plus" size={20}/></span>
+            </button>
+            <div style={{maxHeight:isOpen?'400px':'0',overflow:'hidden',transition:'max-height var(--dur-slow) var(--ease-out)'}}>
+              <p style={{padding:'0 22px 20px',margin:0,fontSize:'var(--text-sm)',lineHeight:1.7,color:'var(--text-secondary)'}}>{a}</p>
+            </div>
+          </div>;
+        })}
+      </div>
     </div>
   </Container></Section>;
 }
@@ -177,24 +255,79 @@ function Blog() {
   </Container></Section>;
 }
 
+/* Compact floating "results" card for the CTA's right side — same visual
+   grammar as Hero's dashboard card (KitCard + EquityCurve + live badges) but
+   smaller and more abstract, so it reads as a premium accent, not a second
+   dashboard. */
+/* Compact offer card for the CTA's right side. Deliberately not another
+   equity-curve dashboard (Hero already shows one on every page this section
+   also appears on) — this one shows the actual discount, so the section
+   doubles as a second, differently-shaped nudge toward the same offer. */
+function CTAOfferCard({ product }) {
+  if(!product) return null;
+  const savePct = product.originalPrice ? Math.round((1 - parseFloat(product.price.replace('$','')) / parseFloat(product.originalPrice.replace('$',''))) * 100) : null;
+  return (
+    <div style={{position:'relative',maxWidth:'360px',margin:'0 auto',padding:'22px',borderRadius:'var(--radius-2xl)',overflow:'hidden',
+      background:'linear-gradient(160deg, rgba(214,175,67,0.12), var(--surface-card-solid))',border:'1px solid var(--border-gold)',
+      boxShadow:'var(--glow-gold-sm), var(--shadow-xl)'}}>
+      <div style={{position:'absolute',inset:0,background:'var(--glow-gold)',pointerEvents:'none'}}/>
+      <div style={{position:'relative'}}>
+        <div style={{display:'flex',alignItems:'center',gap:'8px',flexWrap:'wrap',marginBottom:'16px'}}>
+          <KitBadge tone="solid">{product.badge}</KitBadge>
+          {product.offerBadge && <KitBadge tone="bull" dot>{product.offerBadge}</KitBadge>}
+        </div>
+        <div style={{fontFamily:'var(--font-display)',fontWeight:700,fontSize:'var(--text-md)',color:'var(--text-primary)',marginBottom:'10px'}}>{product.name}</div>
+        <div style={{display:'flex',alignItems:'baseline',gap:'10px',marginBottom:'8px',flexWrap:'wrap'}}>
+          {product.originalPrice && <span style={{fontFamily:'var(--font-mono)',fontSize:'var(--text-md)',color:'var(--text-muted)',textDecoration:'line-through'}}>{product.originalPrice}/mo</span>}
+          <span style={{fontFamily:'var(--font-display)',fontWeight:800,fontSize:'var(--text-3xl)',letterSpacing:'-0.02em',color:'var(--text-primary)'}}>{product.price}</span>
+          <span style={{fontFamily:'var(--font-mono)',fontSize:'var(--text-sm)',color:'var(--text-tertiary)'}}>/month</span>
+        </div>
+        {savePct!=null && <div style={{marginBottom:'18px'}}><KitBadge tone="bull" mono>Save {savePct}% today</KitBadge></div>}
+        <div style={{height:'1px',background:'var(--border-subtle)',margin:'0 0 18px'}}/>
+        <ul style={{listStyle:'none',margin:'0 0 20px',padding:0,display:'flex',flexDirection:'column',gap:'11px'}}>
+          {(product.features||[]).slice(0,5).map(f=>(
+            <li key={f} style={{display:'flex',gap:'10px',alignItems:'flex-start',fontSize:'var(--text-sm)',color:'var(--text-secondary)'}}>
+              <Icon name="check" size={15} color="var(--text-gold)" style={{marginTop:'2px',flexShrink:0}}/><span>{f}</span>
+            </li>
+          ))}
+        </ul>
+        <KitButton as="a" href={product.href} target="_blank" rel="noopener noreferrer" variant="primary" fullWidth iconRight={<Icon name="arrow-up-right" size={16}/>}>
+          {product.cta}
+        </KitButton>
+      </div>
+    </div>
+  );
+}
+
 function CTASection() {
   const memberCount=useLiveMemberCount();
+  const product=(window.FWG_PRODUCTS||[]).find(p=>p.id==='bundle');
   return <Section id="join"><Container>
-    <div style={{position:'relative',overflow:'hidden',borderRadius:'var(--radius-2xl)',padding:'var(--space-10) var(--gutter)',
-      background:'linear-gradient(135deg, var(--ink-850), var(--ink-900))',border:'1px solid var(--border-gold)',textAlign:'center',boxShadow:'var(--glow-gold-md), var(--shadow-xl)'}}>
+    <div style={{position:'relative',overflow:'hidden',borderRadius:'var(--radius-2xl)',padding:'clamp(36px,6vw,72px) clamp(24px,5vw,60px)',
+      background:'linear-gradient(135deg, var(--ink-850), var(--ink-900))',border:'1px solid var(--border-gold)',boxShadow:'var(--glow-gold-md), var(--shadow-xl)'}}>
       <div style={{position:'absolute',inset:0,background:'var(--glow-gold)',pointerEvents:'none'}}/>
-      <div style={{position:'relative',maxWidth:'640px',margin:'0 auto',display:'flex',flexDirection:'column',alignItems:'center',gap:'20px'}}>
-        <KitKicker>Your edge starts now</KitKicker>
-        <h2 style={{fontFamily:'var(--font-display)',fontWeight:800,fontSize:'var(--text-3xl)',lineHeight:1.05,letterSpacing:'var(--ls-tight)',margin:0}}>
-          Stop gambling. Start <span className="fwg-gold-text">trading with a system.</span>
-        </h2>
-        <p style={{fontSize:'var(--text-md)',lineHeight:1.65,color:'var(--text-secondary)',margin:0,maxWidth:'48ch'}}>
-          Join {memberCount}+ traders building real, repeatable consistency with Forex With Ghasif. Start free, upgrade when you’re ready.
-        </p>
-        <div style={{display:'flex',gap:'12px',flexWrap:'wrap',justifyContent:'center',marginTop:'4px'}}>
-          <KitButton as="a" href="/pricing" variant="primary" size="lg" iconRight={<Icon name="arrow-up-right" size={18}/>}>Join VIP Signals</KitButton>
-          <KitButton as="a" href="/contact" variant="secondary" size="lg" iconLeft={<Icon name="calendar" size={18}/>}>Book a mentorship call</KitButton>
+      <div style={{position:'absolute',inset:0,background:'radial-gradient(46% 60% at 88% 40%, rgba(19,185,120,0.10) 0%, rgba(19,185,120,0) 72%)',pointerEvents:'none'}}/>
+      <div style={{position:'absolute',inset:0,backgroundImage:'linear-gradient(var(--border-subtle) 1px, transparent 1px), linear-gradient(90deg, var(--border-subtle) 1px, transparent 1px)',backgroundSize:'56px 56px',maskImage:'radial-gradient(65% 75% at 20% 30%, #000, transparent 75%)',WebkitMaskImage:'radial-gradient(65% 75% at 20% 30%, #000, transparent 75%)',opacity:0.4,pointerEvents:'none'}}/>
+
+      <div style={{position:'relative',display:'grid',gridTemplateColumns:'1.05fr 0.95fr',gap:'var(--space-8)',alignItems:'center'}} className="fwg-grid-2">
+        <div style={{display:'flex',flexDirection:'column',gap:'18px'}} className="fwg-hero-content">
+          <KitKicker>Limited-time offer</KitKicker>
+          <h2 style={{fontFamily:'var(--font-display)',fontWeight:800,fontSize:'var(--text-3xl)',lineHeight:1.05,letterSpacing:'var(--ls-tight)',margin:0,maxWidth:'16ch'}}>
+            The complete system, <span className="fwg-gold-text">now $39/month.</span>
+          </h2>
+          <p style={{fontSize:'var(--text-md)',lineHeight:1.65,color:'var(--text-secondary)',margin:0,maxWidth:'48ch'}}>
+            The Masterclass, Premium Signals, and 1:1 Mentorship, in one membership, normally $64/month. Save 39% while the offer lasts.
+          </p>
+          <div style={{display:'flex',gap:'12px',flexWrap:'wrap',marginTop:'6px'}}>
+            <KitButton as="a" href={product?product.href:'/pricing'} target="_blank" rel="noopener noreferrer" variant="primary" size="lg" iconRight={<Icon name="arrow-up-right" size={18}/>}>Claim The Offer</KitButton>
+            <KitButton as="a" href="/pricing#pro-bundle" variant="secondary" size="lg" iconLeft={<Icon name="list" size={18}/>}>See What's Included</KitButton>
+          </div>
+          <div style={{display:'flex',alignItems:'center',gap:'8px',marginTop:'2px'}}>
+            <KitBadge tone="bull" dot>{memberCount} traders active right now</KitBadge>
+          </div>
         </div>
+
+        <CTAOfferCard product={product} />
       </div>
     </div>
   </Container></Section>;
@@ -238,8 +371,8 @@ function Footer() {
   };
 
   const cols=[
-    ['Trading',[['VIP Signals','/services'],['Market Analysis','/services'],['Performance','/performance'],['Trading Blog','/blog']]],
-    ['Learn',[['Mentorship','/services'],['Risk Management','/services'],['Community','/services'],['Free Resources','/blog']]],
+    ['Trading',[['Premium Signals','/pricing'],['1:1 Mentorship','/pricing'],['Performance','/performance'],['Trading Tools','/tools'],['Trading Blog','/blog']]],
+    ['Learn',[['Forex Masterclass','/course'],['Free Learning Hub','/learning-hub'],['Risk Management','/services'],['Free Community','/pricing']]],
     ['Company',[['About Ghasif','/about'],['Our Philosophy','/about'],['Pricing','/pricing'],['Contact','/contact']]],
   ];
   return <footer style={{borderTop:'1px solid var(--border-subtle)',background:'var(--bg-deep)',paddingTop:'var(--space-9)'}}>

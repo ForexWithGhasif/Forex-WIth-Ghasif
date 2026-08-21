@@ -11,9 +11,9 @@ function FeatureCheck({children}) {
 /* ============================ HOME ============================ */
 function ServicesPreview() {
   const s=[
-    ['bell-ring','VIP Forex Signals','3-5 high-conviction signals daily with full entry, stop and target.'],
-    ['graduation-cap','Trading Mentorship','1:1 and group coaching that builds you into an independent trader.'],
-    ['line-chart','Market Analysis','Daily briefings and deep dives so you understand every move.'],
+    ['book-open','Forex Masterclass','A 12-module course, live on Zoom, from fundamentals to backtesting. $29 one-time.','/course'],
+    ['bell-ring','Premium Signals','Structured market analysis and trade ideas with entry, stop and target. $15/month.','/pricing'],
+    ['graduation-cap','1:1 Trading Mentorship','Personalised coaching, trade-plan reviews, and direct mentor access. $20/month.','/pricing'],
   ];
   return <Section><Container>
     <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-end',gap:'20px',marginBottom:'var(--space-7)',flexWrap:'wrap'}}>
@@ -21,8 +21,8 @@ function ServicesPreview() {
       <KitButton as="a" href="/services" variant="outlineGold" iconRight={<Icon name="arrow-right" size={16}/>}>View all services</KitButton>
     </div>
     <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:'18px'}} className="fwg-grid-3">
-      {s.map(([ic,t,d])=>(
-        <a key={t} href="/services" style={{display:'block'}}>
+      {s.map(([ic,t,d,href])=>(
+        <a key={t} href={href} style={{display:'block'}}>
           <KitCard interactive>
             <div style={{width:'48px',height:'48px',borderRadius:'var(--radius-md)',background:'var(--accent-soft-bg)',border:'1px solid var(--border-gold)',display:'inline-flex',alignItems:'center',justifyContent:'center',marginBottom:'16px'}}>
               <Icon name={ic} size={22} color="var(--text-gold)"/>
@@ -74,9 +74,9 @@ function HomePage() {
 }
 
 /* ============================ ABOUT ============================ */
-function FounderPhoto({ratio='4/5'}) {
+function FounderPhoto({ratio='4/5', src='/assets/founder.png', objectPosition='top center'}) {
   return <div style={{position:'relative',aspectRatio:ratio,borderRadius:'var(--radius-2xl)',overflow:'hidden',border:'1px solid var(--border-gold)',boxShadow:'var(--glow-gold-sm), var(--shadow-lg)'}}>
-    <img src="/assets/founder.png" alt="Ghasif, Founder of Forex With Ghasif" style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',objectPosition:'top center'}}/>
+    <img src={src} alt="Ghasif, Founder of Forex With Ghasif" style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',objectPosition}}/>
     <div style={{position:'absolute',inset:0,background:'linear-gradient(180deg, transparent 55%, rgba(4,5,8,0.82))'}}/>
     <div style={{position:'absolute',top:'18px',left:'18px'}}><KitBadge tone="gold" dot>Founder</KitBadge></div>
     <div style={{position:'absolute',bottom:0,left:0,right:0,padding:'24px'}}>
@@ -117,27 +117,9 @@ function AboutPage() {
         </div>
       </Container></Section>
 
-      <Section style={{background:'var(--bg-elevated)'}}><Container>
-        <Head align="center" kicker="What drives us" title="Mission, vision &amp; values" />
-        <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:'18px'}} className="fwg-grid-3">
-          {mv.map(([ic,t,d])=>(
-            <KitCard key={t} interactive>
-              <div style={{width:'48px',height:'48px',borderRadius:'var(--radius-md)',background:'var(--grad-gold-soft)',display:'inline-flex',alignItems:'center',justifyContent:'center',marginBottom:'16px',boxShadow:'var(--inset-gold-hi)'}}>
-                <Icon name={ic} size={22} color="#1a1405"/>
-              </div>
-              <h3 style={{fontFamily:'var(--font-display)',fontSize:'var(--text-lg)',fontWeight:600,margin:'0 0 8px'}}>{t}</h3>
-              <p style={{fontSize:'var(--text-sm)',lineHeight:1.6,color:'var(--text-secondary)',margin:0}}>{d}</p>
-            </KitCard>
-          ))}
-        </div>
-      </Container></Section>
-
       {/* Founder */}
       <Section data-reveal="right"><Container>
-        <div style={{display:'grid',gridTemplateColumns:'0.8fr 1.2fr',gap:'var(--space-8)',alignItems:'center'}} className="fwg-hero-grid">
-          <div style={{position:'relative'}}>
-            <FounderPhoto />
-          </div>
+        <div style={{display:'grid',gridTemplateColumns:'1.2fr 0.8fr',gap:'var(--space-8)',alignItems:'center'}} className="fwg-hero-grid">
           <div>
             <KitKicker>Meet the founder</KitKicker>
             <h2 style={{fontFamily:'var(--font-display)',fontWeight:700,fontSize:'var(--text-2xl)',lineHeight:1.12,letterSpacing:'var(--ls-tight)',margin:'14px 0 16px',maxWidth:'18ch'}}>
@@ -154,34 +136,60 @@ function AboutPage() {
               <KitButton as="a" href="/performance" variant="secondary">See the results</KitButton>
             </div>
           </div>
+          <div style={{position:'relative'}}>
+            <FounderPhoto src="/assets/founder-portrait.png" objectPosition="center 22%" />
+          </div>
+        </div>
+      </Container></Section>
+
+      <Section style={{background:'var(--bg-elevated)'}}><Container>
+        <Head align="center" kicker="What drives us" title="Mission, vision &amp; values" />
+        <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:'18px'}} className="fwg-grid-3">
+          {mv.map(([ic,t,d])=>(
+            <KitCard key={t} interactive>
+              <div style={{width:'48px',height:'48px',borderRadius:'var(--radius-md)',background:'var(--grad-gold-soft)',display:'inline-flex',alignItems:'center',justifyContent:'center',marginBottom:'16px',boxShadow:'var(--inset-gold-hi)'}}>
+                <Icon name={ic} size={22} color="#1a1405"/>
+              </div>
+              <h3 style={{fontFamily:'var(--font-display)',fontSize:'var(--text-lg)',fontWeight:600,margin:'0 0 8px'}}>{t}</h3>
+              <p style={{fontSize:'var(--text-sm)',lineHeight:1.6,color:'var(--text-secondary)',margin:0}}>{d}</p>
+            </KitCard>
+          ))}
         </div>
       </Container></Section>
 
       <About />
       <TrustBar />
-      <CTASection />
     </Reveal>
   </React.Fragment>;
 }
 
 /* ============================ SERVICES ============================ */
-function ServiceRow({ icon, name, blurb, points, badge, href, reverse, img }) {
+function ServiceRow({ icon, name, blurb, points, badge, href, ctaLabel, reverse, img }) {
+  const content = (
+    <div style={{padding:'var(--space-7)',order:reverse?2:1}}>
+      <div style={{display:'flex',alignItems:'center',gap:'12px',marginBottom:'16px'}}>
+        <div style={{width:'48px',height:'48px',borderRadius:'var(--radius-md)',background:'var(--accent-soft-bg)',border:'1px solid var(--border-gold)',display:'inline-flex',alignItems:'center',justifyContent:'center'}}>
+          <Icon name={icon} size={22} color="var(--text-gold)"/>
+        </div>
+        {badge&&<KitBadge tone="gold">{badge}</KitBadge>}
+      </div>
+      <h3 style={{fontFamily:'var(--font-display)',fontSize:'var(--text-xl)',fontWeight:700,margin:'0 0 10px',letterSpacing:'-0.01em'}}>{name}</h3>
+      <p style={{fontSize:'var(--text-md)',lineHeight:1.65,color:'var(--text-secondary)',margin:'0 0 18px',maxWidth:img?'46ch':'60ch'}}>{blurb}</p>
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'10px',marginBottom:'22px'}} className="fwg-grid-2">
+        {points.map(p=><FeatureCheck key={p}>{p}</FeatureCheck>)}
+      </div>
+      <KitButton as="a" href={href||'/pricing'} variant="outlineGold" iconRight={<Icon name="arrow-right" size={16}/>}>{ctaLabel||'Learn more'}</KitButton>
+    </div>
+  );
+  /* Not every product has a photo (no stock asset exists for the course yet) —
+     rather than show a broken image or a mismatched photo, image-less rows
+     render as a single full-width column instead of the usual split layout. */
+  if(!img){
+    return <KitCard padding="0" style={{overflow:'hidden'}}>{content}</KitCard>;
+  }
   return <KitCard padding="0" style={{overflow:'hidden'}}>
     <div style={{display:'grid',gridTemplateColumns:reverse?'0.9fr 1.1fr':'1.1fr 0.9fr',gap:0,alignItems:'stretch'}} className="fwg-service-grid">
-      <div style={{padding:'var(--space-7)',order:reverse?2:1}}>
-        <div style={{display:'flex',alignItems:'center',gap:'12px',marginBottom:'16px'}}>
-          <div style={{width:'48px',height:'48px',borderRadius:'var(--radius-md)',background:'var(--accent-soft-bg)',border:'1px solid var(--border-gold)',display:'inline-flex',alignItems:'center',justifyContent:'center'}}>
-            <Icon name={icon} size={22} color="var(--text-gold)"/>
-          </div>
-          {badge&&<KitBadge tone="gold">{badge}</KitBadge>}
-        </div>
-        <h3 style={{fontFamily:'var(--font-display)',fontSize:'var(--text-xl)',fontWeight:700,margin:'0 0 10px',letterSpacing:'-0.01em'}}>{name}</h3>
-        <p style={{fontSize:'var(--text-md)',lineHeight:1.65,color:'var(--text-secondary)',margin:'0 0 18px',maxWidth:'46ch'}}>{blurb}</p>
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'10px',marginBottom:'22px'}} className="fwg-grid-2">
-          {points.map(p=><FeatureCheck key={p}>{p}</FeatureCheck>)}
-        </div>
-        <KitButton as="a" href={href||'/pricing'} variant="outlineGold" iconRight={<Icon name="arrow-right" size={16}/>}>Learn more</KitButton>
-      </div>
+      {content}
       <div style={{order:reverse?1:2,minHeight:'260px',position:'relative',overflow:'hidden',borderLeft:reverse?'none':'1px solid var(--border-subtle)',borderRight:reverse?'1px solid var(--border-subtle)':'none'}}>
         <LazyImg src={img} alt={name} style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover'}}/>
         <div style={{position:'absolute',inset:0,background:reverse?'linear-gradient(90deg, rgba(10,12,17,0.55), transparent 60%)':'linear-gradient(270deg, rgba(10,12,17,0.55), transparent 60%)'}}/>
@@ -192,16 +200,18 @@ function ServiceRow({ icon, name, blurb, points, badge, href, reverse, img }) {
 
 function ServicesPage() {
   const services=[
-    {icon:'bell-ring',name:'VIP Forex Signals',badge:'Most popular',img:'/assets/img/service-signals.jpg',blurb:'Institutional-grade trade ideas delivered in real time, each with a full plan and the reasoning behind it, so every signal also teaches.',
-      points:['3-5 signals daily','Entry, stop & target','Real-time app & Instagram alerts','Gold, indices & major pairs']},
-    {icon:'graduation-cap',name:'Trading Mentorship',img:'/assets/img/service-mentorship.jpg',blurb:'Structured 1:1 and group coaching that takes you from the fundamentals to a repeatable, independent trading process.',
-      points:['Personal trade-plan reviews','2× monthly 1:1 calls','Weekly live sessions','Direct access to Ghasif']},
-    {icon:'line-chart',name:'Market Analysis',img:'/assets/img/service-analysis.jpg',blurb:'Daily briefings, economic-calendar reads, and weekly deep dives that give you the context behind every move.',
+    {icon:'book-open',name:'Forex Masterclass',badge:'$29 one-time',href:'/course',ctaLabel:'View course',blurb:'A structured, 12-module course delivered live on Zoom, from market fundamentals through strategy development, risk management, psychology, and backtesting.',
+      points:['12 structured modules','Risk-management framework','Trading psychology lessons','Backtesting & demo trading']},
+    {icon:'bell-ring',name:'Premium Signals',badge:'$15/month',img:'/assets/img/service-signals.jpg',blurb:'Structured market analysis and trade ideas for members who want additional market guidance, each with an entry area, stop-loss, and target levels.',
+      points:['Market analysis','Entry, stop & target levels','Gold & major pairs','Private alerts']},
+    {icon:'graduation-cap',name:'1:1 Trading Mentorship',badge:'$20/month',img:'/assets/img/service-mentorship.jpg',blurb:'Personalised coaching and accountability for traders who want direct guidance developing a structured trading process.',
+      points:['Personal trade-plan reviews','2× monthly 1:1 calls','Trading psychology coaching','Direct mentor access']},
+    {icon:'line-chart',name:'Market Analysis',img:'/assets/img/service-analysis.jpg',blurb:'Daily briefings, economic-calendar reads, and weekly deep dives that give you the context behind every move, included with Premium Signals and Mentorship.',
       points:['Pre-session outlooks','Key levels & bias','Weekly structure breakdowns','Trade-along commentary']},
-    {icon:'shield-check',name:'Risk Management Training',img:'/assets/img/service-risk.jpg',blurb:'The discipline that actually separates traders who last from those who blow up: position sizing, drawdown control, and psychology.',
+    {icon:'shield-check',name:'Risk Management Training',img:'/assets/img/service-risk.jpg',blurb:'The discipline that actually separates traders who last from those who blow up: position sizing, drawdown control, and psychology. Core to the Masterclass and Mentorship.',
       points:['Position-sizing frameworks','Drawdown control','Trading psychology','Personal risk plan']},
-    {icon:'users',name:'Community Support',img:'/assets/img/service-community.jpg',blurb:'A private, moderated community of serious traders: accountability, shared setups, and answers when you need them.',
-      points:['Private member community','Accountability & reviews','Setup sharing','Responsive support']},
+    {icon:'users',name:'Free Community',badge:'$0',href:'/pricing',ctaLabel:'Join free',img:'/assets/img/service-community.jpg',blurb:'A private, moderated community with educational market analysis and example trade setups, free to join, always.',
+      points:['Educational market analysis','Weekly market review','Example trade setups','Community access']},
   ];
   return <React.Fragment>
     <PageHero kicker="Our services" title="Built to make you a complete trader"
