@@ -9,6 +9,11 @@ const economicCalendarRoutes = require('./routes/economicCalendarRoutes');
 
 const app = express();
 
+/* Running behind Vercel's own proxy, which sets X-Forwarded-For — without
+   this, express-rate-limit can't safely trust that header and throws
+   ERR_ERL_UNEXPECTED_X_FORWARDED_FOR on every request. */
+app.set('trust proxy', 1);
+
 app.use(cors({ origin: clientOrigin === '*' ? true : clientOrigin }));
 app.use(express.json());
 
