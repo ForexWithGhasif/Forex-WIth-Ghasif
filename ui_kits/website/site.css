@@ -93,6 +93,11 @@ body { background: transparent; overflow-x: hidden; }
 .fwg-tablewrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 @media (max-width: 640px) {
   .fwg-tablewrap > div { min-width: 480px; }
+  /* Bundle card's "what's combined" disclaimer: reserve a gutter matching
+     the floating WhatsApp button's footprint (56px + 16px margin) so its
+     last line of text never wraps into the space that button fixed-covers
+     while scrolling — otherwise its words get clipped by the button. */
+  .fwg-bundle-disclaimer { padding-right: 76px; }
 }
 
 @media (max-width: 620px) {

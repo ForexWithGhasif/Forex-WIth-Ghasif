@@ -1,5 +1,6 @@
-/* FWG, shared site chrome: routed Nav, Footer, page-layout helpers, theme.
-   Real multi-page navigation via <a href> to sibling .html files. */
+/* FWG, shared site chrome: routed Nav, Footer, page-layout helpers.
+   Real multi-page navigation via <a href> to sibling .html files.
+   Dark theme only — data-theme="dark" is fixed in every page's <html> tag. */
 
 function Container({children,style}) {
   return <div style={{maxWidth:'var(--container-xl)',margin:'0 auto',padding:'0 var(--gutter)',...style}}>{children}</div>;
@@ -21,7 +22,7 @@ const NAV = [
   ['Performance','/performance'],['Learn','/learning-hub'],['Course','/course'],['Tools','/tools'],['Pricing','/pricing'],['Blog','/blog'],['Contact','/contact'],
 ];
 
-function Nav({ active, theme, onToggleTheme }) {
+function Nav({ active }) {
   const [scrolled,setScrolled]=React.useState(false);
   const [open,setOpen]=React.useState(false);
   React.useEffect(()=>{
@@ -54,13 +55,6 @@ function Nav({ active, theme, onToggleTheme }) {
           })}
         </div>
         <div style={{display:'flex',alignItems:'center',gap:'10px'}}>
-          <button onClick={onToggleTheme} aria-label="Toggle theme"
-            style={{width:'40px',height:'40px',display:'inline-flex',alignItems:'center',justifyContent:'center',borderRadius:'var(--radius-md)',
-              background:'var(--surface-card)',border:'1px solid var(--border-default)',color:'var(--text-secondary)',cursor:'pointer',transition:'var(--transition-base)'}}
-            onMouseEnter={e=>{e.currentTarget.style.borderColor='var(--border-gold)';e.currentTarget.style.color='var(--text-gold)';}}
-            onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border-default)';e.currentTarget.style.color='var(--text-secondary)';}}>
-            <Icon name={theme==='dark'?'sun':'moon'} size={18}/>
-          </button>
           <span className="fwg-hide-mobile"><KitButton as="a" href={(window.FWG_SOCIAL||{}).whatsappCommunity} target="_blank" rel="noopener noreferrer" variant="primary" size="sm" iconRight={<Icon name="arrow-up-right" size={16}/>}>Join Free Community</KitButton></span>
           <button className="fwg-menu-btn" onClick={()=>setOpen(o=>!o)} aria-label="Menu" aria-expanded={open}
             style={{display:'none',width:'40px',height:'40px',alignItems:'center',justifyContent:'center',borderRadius:'var(--radius-md)',
@@ -100,13 +94,6 @@ function PageHero({ kicker, title, lead, badge, align='center' }) {
       </div>
     </section>
   );
-}
-
-function useTheme() {
-  const [theme,setTheme]=React.useState(()=>{ try{return localStorage.getItem('fwg-theme')||'dark';}catch(e){return 'dark';} });
-  React.useEffect(()=>{ document.documentElement.setAttribute('data-theme',theme); try{localStorage.setItem('fwg-theme',theme);}catch(e){} },[theme]);
-  React.useEffect(()=>{ if(window.lucide) window.lucide.createIcons(); });
-  return [theme,()=>setTheme(t=>t==='dark'?'light':'dark')];
 }
 
 /* Scroll-reveal wrapper */
@@ -333,9 +320,8 @@ function OfferPopup() {
   );
 }
 
-/* Full page wrapper: promo bar + Nav + content + Footer + offer popup + theme wiring. */
+/* Full page wrapper: promo bar + Nav + content + Footer + offer popup. */
 function Layout({ active, children }) {
-  const [theme,toggle]=useTheme();
   /* Content renders client-side after Babel/React mount, so a cross-page link
      like /pricing#pro-bundle lands before that id exists in the DOM, and the
      browser's native hash-jump silently does nothing. Retry for a generous
@@ -372,7 +358,7 @@ function Layout({ active, children }) {
   return (
     <div className="fwg-app-in">
       <PromoBar />
-      <Nav active={active} theme={theme} onToggleTheme={toggle} />
+      <Nav active={active} />
       <main>{children}</main>
       <Footer />
       <OfferPopup />
@@ -381,4 +367,4 @@ function Layout({ active, children }) {
   );
 }
 
-Object.assign(window,{Container,Section,Head,Nav,PageHero,useTheme,Reveal,Layout});
+Object.assign(window,{Container,Section,Head,Nav,PageHero,Reveal,Layout});

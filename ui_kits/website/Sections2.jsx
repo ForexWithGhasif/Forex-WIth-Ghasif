@@ -33,16 +33,18 @@ function Performance() {
 
 function Testimonials() {
   const t=[
-    ['I came in blowing accounts. Eight months later I’m green and, more importantly, calm. The risk framework changed everything.','Daniel R.','VIP member · 8 months'],
-    ['Ghasif actually teaches. Every signal explains the “why”, so I’m finally building my own read of the market instead of copying blindly.','Aisha M.','Mentorship · 1 year'],
-    ['The transparency sold me. They post the losses too. That honesty is rare in this space and it’s why I trust the calls.','Marcus L.','VIP member · 5 months'],
-    ['Went from random entries to a repeatable plan. My drawdowns are smaller and my confidence is higher. Worth every penny.','Priya S.','Mentorship · 6 months'],
+    ['Before learning from Ghasif, I was entering trades without really understanding why. His lessons on market structure, liquidity, and risk management helped me look at the market with a completely different mindset.','Hamza R.'],
+    ['What I liked most about Ghasif’s teaching is that he keeps things simple. Instead of making trading complicated, he focuses on understanding the market and waiting for the right setup.','Ali M.'],
+    ['I used to focus more on making quick profits than managing my risk. Learning proper risk management and trade planning completely changed my approach to Forex.','Usman K.'],
+    ['The market structure and liquidity concepts were explained in a way that was actually easy to understand. I now have a much clearer process before taking a trade.','Ahsan F.'],
+    ['Ghasif doesn’t teach Forex as a get-rich-quick thing. He emphasizes patience, discipline, risk management, and understanding the market before entering a trade. That mindset shift has been the biggest value for me.','Bilal A.'],
+    ['My biggest problem was overtrading. After learning to wait for specific setups and follow a defined risk plan, I became much more disciplined with my trades.','Saad H.'],
   ];
   return <Section id="testimonials" style={{background:'var(--bg-elevated)'}} data-reveal="right"><Container>
     <Head align="center" kicker="Student results" title="Traders who found consistency"
       lead="Real members, real progress, built on discipline and education, not overnight miracles." />
     <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'18px'}} className="fwg-grid-2">
-      {t.map(([q,n,r])=>(
+      {t.map(([q,n])=>(
         <KitCard key={n} interactive>
           <div style={{display:'flex',gap:'3px',marginBottom:'14px'}}>
             {[0,1,2,3,4].map(i=><Icon key={i} name="star" size={15} color="var(--text-gold)" strokeWidth={0}/>)}
@@ -50,10 +52,7 @@ function Testimonials() {
           <p style={{fontSize:'var(--text-md)',lineHeight:1.6,color:'var(--text-primary)',margin:'0 0 18px',fontWeight:500}}>“{q}”</p>
           <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
             <div style={{width:'40px',height:'40px',borderRadius:'50%',background:'var(--grad-gold-soft)',display:'inline-flex',alignItems:'center',justifyContent:'center',color:'#1a1405',fontWeight:800,fontFamily:'var(--font-display)'}}>{n[0]}</div>
-            <div>
-              <div style={{fontSize:'var(--text-sm)',fontWeight:700}}>{n}</div>
-              <div style={{fontSize:'var(--text-xs)',color:'var(--text-tertiary)'}}>{r}</div>
-            </div>
+            <div style={{fontSize:'var(--text-sm)',fontWeight:700}}>{n}</div>
           </div>
         </KitCard>
       ))}
@@ -151,7 +150,7 @@ function BundleCard({ p, all }) {
               </div>
             ))}
           </div>
-          <p style={{fontSize:'var(--text-2xs)',lineHeight:1.6,color:'var(--text-muted)',margin:'14px 0 0',paddingTop:'12px',borderTop:'1px solid var(--border-subtle)'}}>
+          <p className="fwg-bundle-disclaimer" style={{fontSize:'var(--text-2xs)',lineHeight:1.6,color:'var(--text-muted)',margin:'14px 0 0',paddingTop:'12px',borderTop:'1px solid var(--border-subtle)'}}>
             The Masterclass is normally a one-time purchase; Signals and Mentorship are each billed monthly on their own. As part of the Pro Bundle, all three run under one {p.price}/month membership, cancel anytime.
           </p>
         </div>
