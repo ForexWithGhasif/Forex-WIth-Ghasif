@@ -290,7 +290,7 @@ function Pricing() {
 
 function FAQ() {
   const qs=[
-['What’s the difference between the Masterclass, Signals, and Mentorship?','They’re separate products for separate needs. The Masterclass ($29, one-time) is a structured 12-module course that teaches you to trade. Premium Signals ($15/month) is ongoing market analysis and trade ideas. 1:1 Mentorship ($20/month) is personalised coaching and accountability. The Forex Trader Pro Bundle combines all three into one membership, now $39/month for a limited time (usually $64/month).'],
+['What’s the difference between the Masterclass, Signals, and Mentorship?','They’re separate products for separate needs. The Masterclass ($29, one-time) is a structured 12-module course that teaches you to trade. Premium Signals ($9/month) is ongoing market analysis and trade ideas. 1:1 Mentorship ($20/month) is personalised coaching and accountability. The Forex Trader Pro Bundle combines all three into one membership, now $35/month for a limited time (usually $58/month).'],
     ['Do you guarantee profits?','No, and you should run from anyone who does. We provide education, market analysis, and a disciplined framework. Markets carry real risk; our job is to put the odds and the process on your side, not to promise an outcome.'],
     ['Do I need any experience to start?','Not at all. The Free Community and the Masterclass both start from zero background. Many members join knowing nothing and build up step by step.'],
     ['How much money do I need to begin?','You can start learning with any amount, even on a demo account. For live trading we teach you to risk a small, fixed percentage per trade, so your capital decides position size, not the other way around.'],
@@ -419,10 +419,10 @@ function CTASection() {
         <div style={{display:'flex',flexDirection:'column',gap:'18px'}} className="fwg-hero-content">
           <KitKicker>Limited-time offer</KitKicker>
           <h2 style={{fontFamily:'var(--font-display)',fontWeight:800,fontSize:'var(--text-3xl)',lineHeight:1.05,letterSpacing:'var(--ls-tight)',margin:0,maxWidth:'16ch'}}>
-            The complete system, <span className="fwg-gold-text">now $39/month.</span>
+            The complete system, <span className="fwg-gold-text">now $35/month.</span>
           </h2>
           <p style={{fontSize:'var(--text-md)',lineHeight:1.65,color:'var(--text-secondary)',margin:0,maxWidth:'48ch'}}>
-            The Masterclass, Premium Signals, and 1:1 Mentorship, in one membership, normally $64/month. Save 39% while the offer lasts.
+            The Masterclass, Premium Signals, and 1:1 Mentorship, in one membership, normally $58/month. Save 40% while the offer lasts.
           </p>
           <div style={{display:'inline-flex',alignSelf:'flex-start',alignItems:'center',gap:'8px',padding:'9px 18px',borderRadius:'var(--radius-pill)',background:'var(--accent-soft-bg)',border:'1px solid var(--border-gold)',boxShadow:'var(--glow-gold-sm)',fontSize:'var(--text-xs)',fontWeight:700,color:'var(--text-gold)'}}>
             🎁 Join Today & Receive a $10 welcome reward

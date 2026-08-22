@@ -12,7 +12,7 @@ function FeatureCheck({children}) {
 function ServicesPreview() {
   const s=[
     ['book-open','Forex Masterclass','A 12-module course, live on Zoom, from fundamentals to backtesting. $29 one-time.','/course'],
-    ['bell-ring','Premium Signals','Structured market analysis and trade ideas with entry, stop and target. $15/month.','/pricing'],
+    ['bell-ring','Premium Signals','Structured market analysis and trade ideas with entry, stop and target. $9/month.','/pricing'],
     ['graduation-cap','1:1 Trading Mentorship','Personalised coaching, trade-plan reviews, and direct mentor access. $20/month.','/pricing'],
   ];
   return <Section><Container>
@@ -266,7 +266,7 @@ function ServicesPage() {
   const services=[
     {icon:'book-open',name:'Forex Masterclass',badge:'$29 one-time',href:'/course',ctaLabel:'View course',blurb:'A structured, 12-module course delivered live on Zoom, from market fundamentals through strategy development, risk management, psychology, and backtesting.',
       points:['12 structured modules','Risk-management framework','Trading psychology lessons','Backtesting & demo trading']},
-    {icon:'bell-ring',name:'Premium Signals',badge:'$15/month',img:'/assets/img/service-signals.jpg',blurb:'Structured market analysis and trade ideas for members who want additional market guidance, each with an entry area, stop-loss, and target levels.',
+    {icon:'bell-ring',name:'Premium Signals',badge:'$9/month',img:'/assets/img/service-signals.jpg',blurb:'Structured market analysis and trade ideas for members who want additional market guidance, each with an entry area, stop-loss, and target levels.',
       points:['Market analysis','Entry, stop & target levels','Gold & major pairs','Private alerts']},
     {icon:'graduation-cap',name:'1:1 Trading Mentorship',badge:'$20/month',img:'/assets/img/service-mentorship.jpg',blurb:'Personalised coaching and accountability for traders who want direct guidance developing a structured trading process.',
       points:['Personal trade-plan reviews','2× monthly 1:1 calls','Trading psychology coaching','Direct mentor access']},

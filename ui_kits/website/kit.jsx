@@ -181,8 +181,8 @@ window.FWG_SOCIAL = {
   whatsappMentorship: 'https://wa.me/923047488945?text=Hi%2C%20I%20want%20to%20join%20your%20Live%20Mentorship%20Plan.%20Can%20you%20please%20tell%20me%20how%20to%20complete%20the%20payment%20Process%20and%20get%20started%3F',
   whatsappCommunity: 'https://chat.whatsapp.com/CIx7qpadbjb43oCTHKN8Zh',
   whatsappMasterclass: 'https://wa.me/923047488945?text=Hi%2C%20I%27d%20like%20to%20enroll%20in%20the%20Forex%20Masterclass%20(%2429%2C%20one-time).%20Can%20you%20tell%20me%20how%20to%20get%20started%3F',
-  whatsappSignals: 'https://wa.me/923047488945?text=Hi%2C%20I%27d%20like%20to%20join%20Premium%20Signals%20(%2415%2Fmonth).%20Can%20you%20tell%20me%20how%20to%20get%20started%3F',
-  whatsappBundle: 'https://wa.me/923047488945?text=Hi%2C%20I%27d%20like%20to%20claim%20the%20special%20offer%20on%20the%20Forex%20Trader%20Pro%20Bundle%20(%2439%2Fmonth).%20Can%20you%20tell%20me%20how%20to%20get%20started%3F',
+  whatsappSignals: 'https://wa.me/923047488945?text=Hi%2C%20I%27d%20like%20to%20join%20Premium%20Signals%20(%249%2Fmonth).%20Can%20you%20tell%20me%20how%20to%20get%20started%3F',
+  whatsappBundle: 'https://wa.me/923047488945?text=Hi%2C%20I%27d%20like%20to%20claim%20the%20special%20offer%20on%20the%20Forex%20Trader%20Pro%20Bundle%20(%2435%2Fmonth).%20Can%20you%20tell%20me%20how%20to%20get%20started%3F',
 };
 
 /* Product catalog (single source of truth) — every price, feature list, and
@@ -208,7 +208,7 @@ window.FWG_PRODUCTS = [
   },
   {
     id: 'signals', name: 'Premium Signals', shortName: 'Signals',
-    price: '$15', billing: 'monthly', billingLabel: 'Recurring monthly',
+    price: '$9', billing: 'monthly', billingLabel: 'Recurring monthly',
     tagline: 'Structured market analysis and trade ideas for extra market guidance.',
     features: ['Market analysis', 'Example trade setups', 'Entry area', 'Stop-loss level', 'Target levels', 'Gold & major pairs', 'Market updates', 'Private alerts'],
     cta: 'Get Premium Signals', href: window.FWG_SOCIAL.whatsappSignals,
@@ -222,7 +222,7 @@ window.FWG_PRODUCTS = [
   },
   {
     id: 'bundle', name: 'Forex Trader Pro Bundle', shortName: 'Pro Bundle',
-    price: '$39', originalPrice: '$64', billing: 'monthly', billingLabel: 'Recurring monthly',
+    price: '$35', originalPrice: '$58', billing: 'monthly', billingLabel: 'Recurring monthly',
     badge: 'Best value', offerBadge: 'Special offer', featured: true,
     tagline: 'Get the complete trading education, market guidance, and personalized mentorship experience in one premium membership.',
     features: ['Complete Forex Masterclass', 'Premium Trading Signals', '1:1 Trading Mentorship', '2× monthly 1:1 calls', 'Personalized trade-plan reviews', 'Trade journal review', 'Risk-management framework', 'Trading psychology guidance', 'Market analysis', 'Premium community access'],
