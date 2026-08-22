@@ -60,10 +60,82 @@ function IntroBand() {
   </Container></Section>;
 }
 
+/* Free Backtesting slider — auto-rotating announcement banner directly under
+   Hero. Auto-advance is the primary interaction (dots are a secondary,
+   click-to-jump affordance); the timer is paused on hover/focus and skipped
+   entirely under prefers-reduced-motion (no auto-changing content for those
+   users). The crossfade itself rides var(--dur-slow), which the design
+   system's own reduced-motion media query already collapses to 0ms, so it
+   needs no extra handling. The thin candle-bar strip along the bottom is a
+   purely decorative texture, not a real chart, using the real --bullish/
+   --bearish tokens (never the site's gold branding colors) as instructed. */
+const FREE_BT_SLIDER_MS = 6000;
+const FREE_BT_SLIDES = [
+  { emoji:'🇵🇰', headline:'Pakistan’s First Dedicated Free Backtesting Client Portal', line:'A dedicated trading workspace built for Pakistani traders, at no cost.' },
+  { emoji:'📊', headline:'Backtest Your Trading Strategies — Completely Free', line:'Put your setups to the test before you risk a single dollar.' },
+  { emoji:'🔄', headline:'Replay Historical Markets & Practice Your Setups', line:'Rewind price action and rehearse your entries and exits, risk-free.' },
+  { emoji:'📈', headline:'Backtest Multiple Trading Assets Without Expensive Subscriptions', line:'Forex, gold, and more, no paywalls, no hidden fees.' },
+];
+function fwgSliderCandles(seed) {
+  let s = seed;
+  const rand = () => { s = (s*1103515245+12345) & 0x7fffffff; return s/0x7fffffff; };
+  return Array.from({length:48},()=>({ h: 18+rand()*64, up: rand()>0.45 }));
+}
+const FREE_BT_CANDLES = fwgSliderCandles(42);
+
+function FreeBacktestingSlider() {
+  const [active,setActive] = React.useState(0);
+  const [paused,setPaused] = React.useState(false);
+  const reduced = React.useMemo(()=>{
+    try{ return window.matchMedia('(prefers-reduced-motion: reduce)').matches; }catch(e){ return false; }
+  },[]);
+
+  React.useEffect(()=>{
+    if(reduced || paused) return;
+    const id = setInterval(()=> setActive(i=>(i+1)%FREE_BT_SLIDES.length), FREE_BT_SLIDER_MS);
+    return ()=>clearInterval(id);
+  },[reduced,paused]);
+
+  const slide = FREE_BT_SLIDES[active];
+
+  return <Section data-reveal="up" onMouseEnter={()=>setPaused(true)} onMouseLeave={()=>setPaused(false)}
+    style={{padding:'clamp(48px,7vw,84px) 0',overflow:'hidden',background:'linear-gradient(180deg, var(--ink-900), var(--ink-950))',borderTop:'1px solid var(--border-subtle)',borderBottom:'1px solid var(--border-subtle)'}}>
+    <div style={{position:'absolute',inset:0,background:'var(--glow-gold)',pointerEvents:'none'}}/>
+    <div aria-hidden="true" style={{position:'absolute',left:0,right:0,bottom:0,height:'110px',display:'flex',alignItems:'flex-end',gap:'6px',padding:'0 4%',opacity:0.16,pointerEvents:'none'}}>
+      {FREE_BT_CANDLES.map((c,i)=>(
+        <div key={i} style={{flex:1,minWidth:'2px',height:`${c.h}px`,borderRadius:'2px 2px 0 0',background:c.up?'var(--bullish)':'var(--bearish)'}}/>
+      ))}
+    </div>
+    <Container>
+      <div key={active} style={{position:'relative',maxWidth:'680px',margin:'0 auto',textAlign:'center',display:'flex',flexDirection:'column',alignItems:'center',gap:'14px',
+        background:'var(--surface-glass)',backdropFilter:'blur(var(--blur-sm))',WebkitBackdropFilter:'blur(var(--blur-sm))',
+        border:'1px solid var(--border-gold)',borderRadius:'var(--radius-2xl)',padding:'clamp(28px,5vw,44px)',
+        boxShadow:'var(--glow-gold-sm), var(--shadow-xl)',animation:'fwgRiseUp var(--dur-slow) var(--ease-out) both'}}>
+        <h2 style={{fontFamily:'var(--font-display)',fontWeight:800,fontSize:'var(--text-2xl)',lineHeight:1.15,letterSpacing:'var(--ls-tight)',margin:0}}>
+          <span style={{marginRight:'10px'}}>{slide.emoji}</span>{slide.headline}
+        </h2>
+        <p style={{fontSize:'var(--text-md)',color:'var(--text-secondary)',margin:0,maxWidth:'52ch'}}>{slide.line}</p>
+        <KitBadge tone="solid" mono>100% FREE</KitBadge>
+        <div style={{marginTop:'8px'}}>
+          <KitButton as="a" href="/client/dashboard" variant="primary" size="lg" iconRight={<Icon name="arrow-right" size={18}/>}>Enter Client Portal</KitButton>
+        </div>
+      </div>
+    </Container>
+    <div style={{position:'relative',display:'flex',justifyContent:'center',gap:'8px',marginTop:'32px'}}>
+      {FREE_BT_SLIDES.map((_,i)=>(
+        <button key={i} type="button" aria-label={`Go to slide ${i+1}`} onClick={()=>setActive(i)}
+          style={{width:i===active?'22px':'8px',height:'8px',borderRadius:'var(--radius-pill)',border:'none',cursor:'pointer',padding:0,
+            background:i===active?'var(--grad-gold-soft)':'var(--border-default)',transition:'all var(--dur-base) var(--ease-out)'}}/>
+      ))}
+    </div>
+  </Section>;
+}
+
 function HomePage() {
   return <React.Fragment>
     <Hero />
     <Reveal>
+      <FreeBacktestingSlider />
       <TrustBar />
       <ServicesPreview />
       <IntroBand />
