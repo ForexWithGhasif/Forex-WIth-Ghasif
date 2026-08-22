@@ -550,10 +550,10 @@ function ToolModal({ tool, onClose }) {
 }
 
 const TOOLS = [
-  { id:'risk-calculator', icon:'shield-alert', category:'Calculator', title:'Risk Calculator', width:'620px',
+  { id:'risk-calculator', icon:'shield-alert', category:'Calculator', title:'Risk Calculator', width:'620px', popular:true,
     description:'Turn your account balance and risk % into a clear dollar figure, and see what a losing streak would cost.',
     render:()=><RiskCalculator/> },
-  { id:'position-size', icon:'scale', category:'Calculator', title:'Position Size Calculator', width:'620px',
+  { id:'position-size', icon:'scale', category:'Calculator', title:'Position Size Calculator', width:'620px', popular:true,
     description:'Find the exact lot size that keeps a given stop-loss within your risk limit.',
     render:()=><PositionSizeCalculator/> },
   { id:'pip-calculator', icon:'ruler', category:'Calculator', title:'Pip Calculator', width:'560px',
@@ -578,18 +578,23 @@ function ToolsGrid() {
     <Section><Container>
       <Head align="center" kicker="6 essential tools" title="Trade with the right tools"
         lead="Calculators, a journal, and a calendar, the practical utilities every trader reaches for, built right into the site." />
-      <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:'18px'}} className="fwg-grid-3">
+      <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:'22px'}} className="fwg-grid-3">
         {TOOLS.map(t=>(
-          <KitCard key={t.id} interactive padding="26px" onClick={()=>setActiveId(t.id)} style={{cursor:'pointer',display:'flex',flexDirection:'column'}}>
-            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'18px'}}>
-              <div style={{width:'46px',height:'46px',borderRadius:'var(--radius-md)',background:'var(--accent-soft-bg)',border:'1px solid var(--border-gold)',display:'inline-flex',alignItems:'center',justifyContent:'center'}}>
+          <KitCard key={t.id} interactive featured={t.popular} padding="26px" onClick={()=>setActiveId(t.id)} style={{cursor:'pointer',display:'flex',flexDirection:'column'}}>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'18px',gap:'10px'}}>
+              <div style={{width:'46px',height:'46px',flexShrink:0,borderRadius:'var(--radius-md)',background:'var(--accent-soft-bg)',border:'1px solid var(--border-gold)',display:'inline-flex',alignItems:'center',justifyContent:'center'}}>
                 <Icon name={t.icon} size={21} color="var(--text-gold)"/>
               </div>
-              <KitBadge tone="gold">{t.category}</KitBadge>
+              <div style={{display:'flex',gap:'8px',alignItems:'center',flexWrap:'wrap',justifyContent:'flex-end'}}>
+                {t.popular && <KitBadge tone="solid" mono>Popular</KitBadge>}
+                <KitBadge tone="gold">{t.category}</KitBadge>
+              </div>
             </div>
             <h3 style={{fontFamily:'var(--font-display)',fontSize:'var(--text-md)',fontWeight:700,margin:'0 0 8px',lineHeight:1.25}}>{t.title}</h3>
-            <p style={{fontSize:'var(--text-sm)',lineHeight:1.6,color:'var(--text-secondary)',margin:'0 0 18px',flex:1}}>{t.description}</p>
-            <div><KitButton variant="outlineGold" size="sm" onClick={()=>setActiveId(t.id)} iconRight={<Icon name="arrow-right" size={14}/>}>Open tool</KitButton></div>
+            <p style={{fontSize:'var(--text-sm)',lineHeight:1.6,color:'var(--text-secondary)',margin:'0 0 18px',flex:1,display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical',overflow:'hidden'}}>{t.description}</p>
+            <div style={{paddingTop:'18px',borderTop:'1px solid var(--border-subtle)'}}>
+              <KitButton variant="outlineGold" size="sm" fullWidth onClick={()=>setActiveId(t.id)} iconRight={<Icon name="arrow-right" size={14}/>}>Open Tool</KitButton>
+            </div>
           </KitCard>
         ))}
       </div>
