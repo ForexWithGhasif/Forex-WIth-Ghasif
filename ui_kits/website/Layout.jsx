@@ -304,10 +304,13 @@ function OfferPopup() {
             <span style={{fontFamily:'var(--font-display)',fontWeight:800,fontSize:'var(--text-4xl)',letterSpacing:'-0.02em',color:'var(--text-primary)'}}>{product.price}</span>
             <span style={{fontFamily:'var(--font-mono)',fontSize:'var(--text-sm)',color:'var(--text-tertiary)'}}>/month</span>
           </div>
-          {savePct!=null && <div style={{marginBottom:'24px'}}><KitBadge tone="bull" mono>Save {savePct}% today</KitBadge></div>}
+          {savePct!=null && <div style={{marginBottom:'16px'}}><KitBadge tone="bull" mono>Save {savePct}% today</KitBadge></div>}
+          <div style={{display:'inline-flex',alignItems:'center',gap:'8px',padding:'9px 18px',marginBottom:'20px',borderRadius:'var(--radius-pill)',background:'var(--accent-soft-bg)',border:'1px solid var(--border-gold)',boxShadow:'var(--glow-gold-sm)',fontSize:'var(--text-xs)',fontWeight:700,color:'var(--text-gold)'}}>
+            🎁 Join Today & Receive a $10 Welcome Reward
+          </div>
           <KitButton as="a" href={product.href} target="_blank" rel="noopener noreferrer" variant="primary" size="lg" fullWidth
             iconRight={<Icon name="arrow-up-right" size={18}/>}>
-            Claim This Offer
+            Claim My $10 Bonus
           </KitButton>
           <div style={{marginTop:'10px'}}>
             <KitButton as="a" href="/pricing#pro-bundle" variant="secondary" size="md" fullWidth onClick={()=>setShow(false)}>

@@ -424,10 +424,14 @@ function CTASection() {
           <p style={{fontSize:'var(--text-md)',lineHeight:1.65,color:'var(--text-secondary)',margin:0,maxWidth:'48ch'}}>
             The Masterclass, Premium Signals, and 1:1 Mentorship, in one membership, normally $64/month. Save 39% while the offer lasts.
           </p>
+          <div style={{display:'inline-flex',alignSelf:'flex-start',alignItems:'center',gap:'8px',padding:'9px 18px',borderRadius:'var(--radius-pill)',background:'var(--accent-soft-bg)',border:'1px solid var(--border-gold)',boxShadow:'var(--glow-gold-sm)',fontSize:'var(--text-xs)',fontWeight:700,color:'var(--text-gold)'}}>
+            🎁 Join Today & Receive a $10 welcome reward
+          </div>
           <div style={{display:'flex',gap:'12px',flexWrap:'wrap',marginTop:'6px'}}>
-            <KitButton as="a" href={product?product.href:'/pricing'} target="_blank" rel="noopener noreferrer" variant="primary" size="lg" iconRight={<Icon name="arrow-up-right" size={18}/>}>Claim The Offer</KitButton>
+            <KitButton as="a" href={product?product.href:'/pricing'} target="_blank" rel="noopener noreferrer" variant="primary" size="lg" iconRight={<Icon name="arrow-up-right" size={18}/>}>Claim Your Bonus</KitButton>
             <KitButton as="a" href="/pricing#pro-bundle" variant="secondary" size="lg" iconLeft={<Icon name="list" size={18}/>}>See What's Included</KitButton>
           </div>
+          <p style={{fontSize:'var(--text-2xs)',color:'var(--text-muted)',margin:0}}>Limited-time offer. Terms and eligibility apply.</p>
           <div style={{display:'flex',alignItems:'center',gap:'8px',marginTop:'2px'}}>
             <KitBadge tone="bull" dot>{memberCount} traders active right now</KitBadge>
           </div>
